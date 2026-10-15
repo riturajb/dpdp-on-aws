@@ -61,6 +61,6 @@ No identifier from version 2 was removed or renamed. The `Identifier Change Log`
 ## Limitations
 
 - The workbook reflects the Act and the Rules as notified on 13 November 2025, read with the Removal of Difficulties Order of 5 October 2026. Check for later amendments and notifications.
-- The commencement dates of Sections 17, 38 and 44(2) are left blank in *In force from*; the *Time limit* column notes that they are to be confirmed from the notification.
+- The dates on which sections of the Act come into force are taken from the Government's notification G.S.R. 843(E) of 13 November 2025. The dates for the Rules come from Rule 1 of the Rules.
 - It does not cover sector rules, such as those of the Reserve Bank of India, the Insurance Regulatory and Development Authority of India, or CERT-In. These will be addressed where they overlap with DPDP in later releases.
 - It is not legal advice.
