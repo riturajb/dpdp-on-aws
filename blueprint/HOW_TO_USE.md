@@ -17,7 +17,7 @@ The workbook `DPDP_Obligations_Matrix.xlsx` (version 3) is designed for a first 
 
    The column *Evidence to keep* tells you what proof to collect for each duty.
 5. **Read the exact legal text** for any row by selecting *Read the exact text*. It opens the matching row in the `Legal Text` sheet, which reproduces the Gazette wording, including the Illustrations under Rules 8(3) and 10.
-6. **Check `Coverage`.** It lists all 83 provisions of the Act and the Rules: 35 have their own row, 27 are grouped into a row, 20 do not apply to companies, and 1 (Section 3) is explained in Start Here.
+6. **Check `Coverage`.** It lists all 83 provisions of the Act and the Rules: 35 have their own row, 28 are grouped into a row, 19 do not apply to companies, and 1 (Section 3) is explained in Start Here.
 7. **Review `Gap Summary`.** Counts by status and priority update automatically.
 8. **Use `Event Playbook`** to check that your organisation has a defined response, an owner and a time limit for each event, such as a breach or an erasure request.
 9. **Use `Timeline`** to plan work against the commencement dates, and **`Penalties`** to see the maximum penalty for each kind of breach.
@@ -55,6 +55,7 @@ The same identifiers will be used in the code, the tests and the evidence in lat
 - Three rows added: exemptions under Section 17, including Section 17(1)(f) for loan defaulters; Section 38 (conflict with other laws); and Section 44(2) (omission of Section 43A of the Information Technology Act).
 - New column *Provisions covered in this row*, and the new `Coverage` sheet.
 - Corrections to the legal text of Sections 8(11), 11(2) and 12(2), and the Illustrations under Rules 8(3) and 10 added.
+- Every line of the `Coverage` sheet was reviewed independently against the Gazette text on 15 October 2026. The corrections are listed in the `Identifier Change Log` and in the v0.1.3 release notes.
 
 No identifier from version 2 was removed or renamed. The `Identifier Change Log` sheet records each change.
 
