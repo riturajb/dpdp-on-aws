@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars (ignored by Git).
+organization_id = "o-xxxxxxxxxx"
+
+account_emails = {
+  "log-archive" = "yourname+dpdp-logarchive@gmail.com"
+  "audit"       = "yourname+dpdp-audit@gmail.com"
+  "workload"    = "yourname+dpdp-workload@gmail.com"
+  "sandbox"     = "yourname+dpdp-sandbox@gmail.com"
+}
+
+# Guardrail rollout, one stage at a time (see the setup guide, Part 9).
+scp_attachments = {
+  sandbox   = []
+  workloads = []
+  security  = []
+}
