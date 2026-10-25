@@ -1,5 +1,5 @@
 # Account and unit ids, needed for the CLI profiles and other stacks, and the list of
-# guardrails currently attached (for the checkpoint in the setup guide, Part 10.3).
+# guardrails currently attached (for the checkpoint in the setup guide, Part 10.2).
 
 output "organization_id" {
   value = aws_organizations_organization.this.id
