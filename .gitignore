@@ -1,0 +1,45 @@
+# ---- Secrets, account details and local configuration: never commit ----
+.env
+.env.*
+config/local.env
+*.pem
+*.key
+credentials
+.aws/
+backend.hcl
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# ---- Terraform ----
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ---- Bootstrap log, saved outputs, screenshots and demonstration runs: contain account ids, stay on this laptop ----
+notes/bootstrap-log.md
+notes/outputs/
+notes/screenshots/
+notes/demo/
+
+# ---- Generated locally ----
+data/
+evidence/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# ---- Operating system and editor files ----
+.DS_Store
+Thumbs.db
+~$*.xlsx
+.idea/
+.vscode/

@@ -1,0 +1,22 @@
+# Runs before every commit on your laptop. After installing, run:  pre-commit autoupdate
+# If any check fails, the commit is stopped and the message says what to fix.
+repos:
+  # Stops a commit that contains a key, password or token.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+  # Puts .tf files into Terraform's standard layout before they are committed.
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.99.0
+    hooks:
+      - id: terraform_fmt
+  # Checks the personal data register whenever a file under register/ changes.
+  - repo: local
+    hooks:
+      - id: register-check
+        name: personal data register check
+        entry: python3 tools/register_check.py
+        language: system
+        pass_filenames: false
+        files: ^register/
