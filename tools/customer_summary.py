@@ -184,7 +184,7 @@ def main(argv=None) -> int:
     ap.add_argument("--offline", help="folder written by generate_synthetic_data.py")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--brief", action="store_true", help="one line per category")
-    ap.add_argument("--compact", action="store_true", help="short lines, for the demonstration video")
+    ap.add_argument("--compact", action="store_true", help="short lines, for narrow screens")
     args = ap.parse_args(argv)
     reg = register.load()
     if args.offline:

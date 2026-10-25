@@ -1,15 +1,43 @@
-# DPDP in Practice: AWS and GitHub Setup Guide
+# DPDP in Practice: Setup Guide
 
-Version of 22 October 2026. Used together with the **Release 1 Build Guide**. This guide builds the platform: the AWS organisation, sign-in, guardrails, logging, evidence storage, cost alerts, and the GitHub settings. The Release 1 guide then builds the model company, **Fernleaf Finance (fictional)**, the personal data register, the tests and the demonstration on top of it.
+Edition of 26 October 2026, for Release 1 (`v0.2.0`). This guide builds the platform in your own AWS account: the AWS organisation, sign-in, guardrails, logging, evidence storage and cost alerts. The **Release 1 Guide** then builds the model company, **Fernleaf Finance (fictional)**, the personal data register and the tests on top of it.
 
-> **Reading this guide outside the author's build.** It was written for the author's own build and uses his GitHub account name, `riturajb`, and his name in Git settings. Use your own wherever they appear. Where the guide unpacks the starter kit zip (Part 1.4, step 4), download this repository instead (**Code → Download ZIP** on its GitHub page), unpack it in the same place, and use the folder `dpdp-on-aws-main` wherever the guide says `release1-starter-kit`. Part 1.5 describes the author's kit updates; to take a later release, download the repository again.
+## Before you start
 
-**What you need before starting**
+Read this section in full before you create anything. Some of what this build creates cannot be removed on the same day.
+
+**Who this guide is for.** People who want to see DPDP obligations built as controls that run, test themselves and keep evidence: security, risk and compliance professionals, cloud engineers and auditors. You should be comfortable typing commands in a terminal and reading a Terraform plan. The build is a reference implementation for learning and adaptation, not a ready-made production platform, and it is not legal advice.
+
+**Use a new AWS account created only for this build.** Never use an AWS account or organisation that belongs to your employer or a client, and never one that already holds other work. Part 4 takes the AWS organisation under Terraform's control, and Part 9 attaches guardrails that limit what every member account can do.
+
+**Two starting points.** The build needs an AWS organisation with all features and IAM Identity Center. You can start from either of these:
+
+| Starting point | What you have | Where the guide differs |
+|---|---|---|
+| **A. AWS's newer sign-up** | An account created with **Sign up for AWS (new)**, with an AWS Builder ID, and **advanced features activated** in AWS Settings. Activation creates the organisation, its management account, IAM Identity Center in US East (N. Virginia), and two accounts that AWS manages: your project account and `Identity Delegated Admin` | The author's build used this starting point |
+| **B. A standard AWS account** | An account created with **Sign up for AWS (advanced)**, the long-standing sign-up with a root user email address and password | Part 3.0 creates the organisation and IAM Identity Center. Steps that differ are marked **Starting point B** |
+
+AWS states that the newer sign-up is available to a limited number of customers, so most readers will start from B. Starting point B follows AWS's standard steps for creating an organisation and enabling IAM Identity Center, described in AWS's documentation.
+
+**Cost.** Nothing in the build runs servers. The tables are billed per request, and the first copy of management events in the trail is free. The budget in Part 8 sends email alerts at USD 6, 12 and 18 a month (about INR 1,500 at the top). A budget sends alerts; it does not stop spending. Check **Billing and Cost Management** after each working session.
+
+**Free plan credits.** An account in an AWS organisation is on the Paid plan. AWS upgrades a Free plan account to the Paid plan when it joins an organisation, and its Free Tier FAQ states that an account becomes ineligible to earn more credits when it joins an organisation. If your account has credits you want to keep using, check their status in **Billing and Cost Management** before you continue.
+
+**What cannot be removed quickly.**
+
+- From Part 7, the audit logs are locked for 365 days and the live test evidence for 30 days, using S3 Object Lock. Locked evidence cannot be deleted by anyone, including the root user, until its retention ends, and a bucket cannot be deleted while it holds locked objects.
+- The four accounts created in Part 4 cannot be deleted from Terraform. They can only be closed. A closed account stays in the organisation, and counts towards its account limit, for a post-closure period of 90 days. The management account can be closed only after the organisation is deleted, which in turn needs the member accounts to have left it.
+- Part 11 explains how to remove everything, and how long each step takes.
+
+**Time.** AWS can take up to two days to verify a new account before every service is available, and a new organisation may need AWS Support to raise its account limit (Part 4.2). Plan the build over several sessions.
+
+**What you need**
 
 - A laptop with Windows 10 or 11 (these steps use WSL with Ubuntu), or macOS, or Linux.
-- An AWS organisation created through AWS's sign-up flow, with advanced features activated. Activation creates the organisation, its management account (`dpdp-management`) and IAM Identity Center. This guide starts from that state.
+- An AWS account at starting point A or B, as above.
 - A phone with an authenticator app (Google Authenticator, Microsoft Authenticator or similar).
-- The starter kit file `release1_starter_kit.zip`.
+- An email address whose provider delivers `name+anything@domain` to `name@domain`, such as Gmail or Outlook. Part 4 needs four account addresses.
+- A GitHub account only if you want to keep your own copy of the code on GitHub (Parts 1.3 and 10). Running the build does not need one.
 
 **How to read the commands in this guide**
 
@@ -24,12 +52,12 @@ Version of 22 October 2026. Used together with the **Release 1 Build Guide**. Th
 - Run commands in the Ubuntu terminal unless a step says "console".
 - From Part 1.4 onwards, start every working session with this command. All paths in both guides are relative to that folder, and the Python tools need the virtual environment.
   ```bash
-  cd ~/work/dpdp-on-aws-workbench && source .venv/bin/activate
+  cd ~/work/dpdp-on-aws && source .venv/bin/activate
   ```
-- Every step that Terraform and the tests do not record themselves is recorded in the bootstrap log, `notes/bootstrap-log.md` in the workbench: console clicks, values you are asked to keep, check outputs, and decisions. Part 1.6 explains how. The log stays on the laptop and is never committed or published.
-- Never paste account numbers, keys, email addresses or backend files into the public repository.
+- Every step that Terraform and the tests do not record themselves is recorded in the bootstrap log, `notes/bootstrap-log.md`: console clicks, values you are asked to keep, check outputs, and decisions. Part 1.5 explains how. The log stays on your laptop and is never committed.
+- Never paste account numbers, keys, email addresses or backend files into any repository.
 - After every `terraform plan`, read the plan line by line before applying. If anything is to be destroyed that you did not expect, stop.
-- The first `terraform init` in each stack creates a file named `.terraform.lock.hcl`. It records the exact AWS provider version and its checksums, so every later run uses the same version. It holds no secrets and belongs in Git. `git status` lists these files as untracked until they are committed; this is expected. Part 8.3 commits all of them in one pull request.
+- Each Terraform stack has a file named `.terraform.lock.hcl`, already in the repository. It records the exact AWS provider version and its checksums, so `terraform init` installs the same version that was tested.
 
 ## Names and values used in both guides
 
@@ -37,18 +65,18 @@ These names are used exactly as written in the setup guide, the Release 1 guide 
 
 | Item | Value |
 |---|---|
-| Region | Asia Pacific (Mumbai), `ap-south-1`, for every DPDP resource. IAM Identity Center stays in the region where AWS's sign-up flow created it, normally US East (N. Virginia), `us-east-1` |
+| Region | Asia Pacific (Mumbai), `ap-south-1`, for every DPDP resource. IAM Identity Center runs in one region: US East (N. Virginia), `us-east-1`, at starting point A, where AWS created it; Asia Pacific (Mumbai) at starting point B, where Part 3.0 enables it. This guide calls it **the Identity Center region** |
 | Organisational units | `Security`, `Workloads`, `Sandbox` |
-| Accounts | `dpdp-management` (the organisation's management account; the console may show it as `<team name> Management Account`), `dpdp-log-archive` and `dpdp-audit` (Security), `dpdp-workload` (Workloads), `dpdp-sandbox` (Sandbox) |
-| Accounts created by AWS, not part of the build | Your project account and `Identity Delegated Admin`. Both stay at Root and stay empty |
-| Account emails | `<yourname>+dpdp-logarchive@gmail.com`, `+dpdp-audit`, `+dpdp-workload`, `+dpdp-sandbox` |
+| Accounts | `dpdp-management` (the organisation's management account; at starting point A the console may show it as `<team name> Management Account`), `dpdp-log-archive` and `dpdp-audit` (Security), `dpdp-workload` (Workloads), `dpdp-sandbox` (Sandbox) |
+| Accounts created by AWS, not part of the build (starting point A only) | Your project account and `Identity Delegated Admin`. Both stay at Root and stay empty |
+| Account emails | `<name>+dpdp-logarchive@<domain>`, `+dpdp-audit`, `+dpdp-workload`, `+dpdp-sandbox` |
 | Permission sets (IAM Identity Center) | `BreakGlassAdmin` (AdministratorAccess, 1 hour), `PlatformEngineer` (PowerUserAccess and IAMReadOnlyAccess, 4 hours), `Auditor` (ReadOnlyAccess, 4 hours), `ViewOnly` (ViewOnlyAccess, 8 hours) |
 | Command-line profiles | `dpdp-mgmt-admin`, `dpdp-logarchive-admin`, `dpdp-logarchive-auditor`, `dpdp-workload-eng`, `dpdp-workload-admin`, `dpdp-sandbox-eng` |
 | Terraform state buckets | `dpdp-tfstate-<account id>`, one in each account |
 | Guardrail policies | `region` (deny-regions-outside-mumbai), `baseline` (baseline-protections), `buckets` (protect-log-and-evidence-buckets), `cost` (deny-costly-services) |
 | Organisation trail | `dpdp-organization-trail`, created in `dpdp-management` |
 | Log and evidence buckets (in `dpdp-log-archive`) | `dpdp-cloudtrail-logs-<id>` (governance, 365 days), `dpdp-evidence-live-<id>` (compliance, 30 days), `dpdp-evidence-sandbox-<id>` (governance, 1 day) |
-| Model company | Fernleaf Finance (fictional), an Indian lender with a prepaid wallet. Always written with "(fictional)" the first time in each post or document |
+| Model company | Fernleaf Finance (fictional), an Indian lender with a prepaid wallet |
 | Model company stores | `dpdp-customers`, `dpdp-loans`, `dpdp-wallet-transactions`, `dpdp-support-tickets`, `dpdp-bureau-reports-<id>`, `dpdp-app-events-<id>` |
 | Test customer | `C-TEST-0001` (adult borrower), `C-TEST-0002` (teen linked to C-TEST-0001) |
 | Local files never committed | `backend.hcl`, `terraform.tfvars`, `config/local.env`, `~/.aws/config`, `data/`, `evidence/`, and the bootstrap log with its saved outputs and screenshots: `notes/bootstrap-log.md`, `notes/outputs/`, `notes/screenshots/` |
@@ -208,26 +236,26 @@ pre-commit --version
 python3 --version
 ```
 
-Record every version in `notes/tool-versions.md` once the workbench exists (Part 1.4).
+### 1.3 Git settings and GitHub access (optional)
 
-### 1.3 Set up Git, commit signing and GitHub access
+**Skip this part if you only want to run the build.** It is needed only if you will keep your own copy of the code on GitHub (Part 1.4, "Your own copy on GitHub", and Part 10). Cloning the public repository in Part 1.4 needs no account and no key.
 
-**Why:** Every change in the public repository carries your name and a cryptographic signature, so a reader can confirm who made it and that it was not altered afterwards. Your email address is kept out of the history to protect your own personal data. The access key lets the laptop send changes to GitHub without a password.
+**Why:** Every change in your copy then carries your name and a cryptographic signature, so anyone can confirm who made it and that it was not altered afterwards. Your email address is kept out of the history to protect your own personal data. The access key lets the laptop send changes to GitHub without a password.
 
-**Keep your email address out of the public history (GitHub website)**
+**Keep your email address out of the history (GitHub website)**
 
 1. In GitHub, open **Settings → Emails**. Tick **Keep my email addresses private** and **Block command line pushes that expose my email**.
-2. The same page shows your private address in the form `<id>+riturajb@users.noreply.github.com`. Use it in step 4.
+2. The same page shows your private address in the form `<id>+<your GitHub account>@users.noreply.github.com`. Use it in step 4.
 
 **Your name and address in Git**
 
 3. Set your name:
    ```bash
-   git config --global user.name "Rituraj"
+   git config --global user.name "<your name>"
    ```
 4. Set your private GitHub address:
    ```bash
-   git config --global user.email "<id>+riturajb@users.noreply.github.com"
+   git config --global user.email "<id>+<your GitHub account>@users.noreply.github.com"
    ```
 
 **Commit signing key**
@@ -258,7 +286,7 @@ Record every version in `notes/tool-versions.md` once the workbench exists (Part
     ```
 11. In GitHub: **Settings → SSH and GPG keys → New SSH key**. Set **Key type** to **Signing key**, paste the line, and save. On the same page, tick **Flag unsigned commits as unverified**.
 
-**GitHub access key, used for cloning and pushing**
+**GitHub access key, used for pushing**
 
 12. Create the access key. Press Enter twice when asked for a passphrase, or set one.
     ```bash
@@ -269,176 +297,90 @@ Record every version in `notes/tool-versions.md` once the workbench exists (Part
     cat ~/.ssh/id_ed25519.pub
     ```
 14. In GitHub: **Settings → SSH and GPG keys → New SSH key**. Set **Key type** to **Authentication key**, paste the line, and save.
-15. Test the connection. Type `yes` if asked whether to continue connecting. It must print "Hi riturajb! You've successfully authenticated".
+15. Test the connection. Type `yes` if asked whether to continue connecting. It must print "Hi <your GitHub account>! You've successfully authenticated".
     ```bash
     ssh -T git@github.com
     ```
 
-### 1.4 Put the starter kit into the workbench
+### 1.4 Get the code
 
-**Why:** The workbench is your private working copy. The starter kit holds the code, guardrail policies, personal data register and tests for Release 1. Putting it under Git from the first day means every later change is recorded and can be reviewed.
+**Why:** The repository holds the code, guardrail policies, personal data register and tests. Working from a Git copy means every test result can name the exact version of the code that produced it.
 
 1. Create the work folder and go into it:
    ```bash
    mkdir -p ~/work && cd ~/work
    ```
-2. Clone the private workbench:
+2. Copy the public repository to the laptop:
    ```bash
-   git clone git@github.com:riturajb/dpdp-on-aws-workbench.git
+   git clone https://github.com/riturajb/dpdp-on-aws.git
    ```
 3. Go into it:
    ```bash
-   cd dpdp-on-aws-workbench
+   cd dpdp-on-aws
    ```
-4. Unpack the starter kit. Windows files are under `/mnt/c` in Ubuntu; replace `<windows user>` with your Windows user name (for example `Asus`), and adjust the folder if you saved the file elsewhere.
-   ```bash
-   unzip -o /mnt/c/Users/<windows user>/Downloads/release1_starter_kit.zip \
-     -d /tmp/kit
-   ```
-5. Copy the kit into the workbench:
-   ```bash
-   cp -r /tmp/kit/release1-starter-kit/. .
-   ```
-6. Create the Python virtual environment and switch it on:
+4. Create the Python virtual environment and switch it on:
    ```bash
    python3 -m venv .venv && source .venv/bin/activate
    ```
-7. Install the Python packages:
+5. Install the Python packages:
    ```bash
    pip install -r requirements.txt
    ```
-8. Switch on the checks that run before every commit:
+6. Switch on the checks that run before every commit. They matter only if you commit changes, and cost nothing otherwise.
    ```bash
-   pre-commit install && pre-commit autoupdate
+   pre-commit install
    ```
-9. Format the Terraform files:
+7. Run the register check. It must end with `Result: PASS (0 failures, 6 warnings to review)`.
+
+   **What it checks:** the file `register/personal-data-register.yaml` lists every kind of personal data Fernleaf Finance (fictional) holds. The check confirms that each kind has a purpose, a legal basis, a store, a retention rule and, for each vendor, a contract clause. A **failure** means something required is missing; it stops a commit. A **warning** does not stop anything; it marks a point a person must still confirm. The six warnings are expected at this stage: one vendor (the email provider) is outside India, and five retention periods are placeholders until they are confirmed against the RBI and anti-money-laundering rules.
    ```bash
-   terraform fmt -recursive terraform
+   python tools/register_check.py
    ```
-10. Run the register check. It must end with `Result: PASS (0 failures, 6 warnings to review)`.
+8. Run the offline tests. They must report `3 passed, 11 skipped`.
 
-    **What it checks:** the file `register/personal-data-register.yaml` lists every kind of personal data Fernleaf Finance (fictional) holds. The check confirms that each kind has a purpose, a legal basis, a store, a retention rule and, for each vendor, a contract clause. A **failure** means something required is missing; it stops a commit. A **warning** does not stop anything; it marks a point a person must still confirm. The six warnings are expected at this stage: one vendor (the email provider) is outside India, and five retention periods are placeholders until they are confirmed against the RBI and anti-money-laundering rules.
-    ```bash
-    python tools/register_check.py
-    ```
-11. Run the offline tests. They must report `3 passed, 11 skipped`.
+   **What the tests are:** Release 1 has 14 tests. Each one tries something the law requires to be true and records the result as evidence. **Offline** tests use only the files in the repository, so they run anywhere, including on GitHub. **Live** tests try real actions in your AWS accounts, so they are skipped until those accounts exist; the Release 1 guide runs them with `python -m pytest --live`.
 
-    **What the tests are:** Release 1 has 14 tests. Each one tries something the law requires to be true and records the result as evidence. **Offline** tests use only the files in the workbench, so they run anywhere, including on GitHub. **Live** tests try real actions in your AWS accounts, so they are skipped until those accounts exist; the Release 1 guide runs them with `python -m pytest --live`.
+   | Test | What it proves | Type |
+   |---|---|---|
+   | T1 | The register is complete | Offline |
+   | T3 | A data flow without a legal basis is blocked | Offline |
+   | T4 | One command lists everything held about a customer (on synthetic data) | Offline |
+   | T2 | The register matches the stores that exist in the account | Live |
+   | T4 (live) | The same customer summary, from the real stores | Live |
+   | T5a to T5f | Logs cannot be deleted, shortened or unlocked, and the trail cannot be stopped, even by an administrator (6 tests) | Live |
+   | T6 | Storage cannot be created outside Mumbai | Live |
+   | T7 | No IAM users with stored passwords or keys, in two accounts (2 tests) | Live |
 
-    | Test | What it proves | Type |
-    |---|---|---|
-    | T1 | The register is complete | Offline |
-    | T3 | A data flow without a legal basis is blocked | Offline |
-    | T4 | One command lists everything held about a customer (on synthetic data) | Offline |
-    | T2 | The register matches the stores that exist in the account | Live |
-    | T4 (live) | The same customer summary, from the real stores | Live |
-    | T5a to T5f | Logs cannot be deleted, shortened or unlocked, and the trail cannot be stopped, even by an administrator (6 tests) | Live |
-    | T6 | Storage cannot be created outside Mumbai | Live |
-    | T7 | No IAM users with stored passwords or keys, in two accounts (2 tests) | Live |
-
-    The 3 offline tests pass; the 11 live tests are skipped for now. Each test file starts with a short explanation of what it checks, what a pass and a failure mean, and where its evidence is stored.
-    ```bash
-    python -m pytest
-    ```
-12. Commit the kit as the first workbench commit. The workbench history is private, so one commit is fine here. The first commit takes a minute longer while pre-commit downloads its tools.
-    ```bash
-    git add -A && git commit -m "Add Release 1 starter kit"
-    ```
-13. Push it:
-    ```bash
-    git push
-    ```
-
-### 1.5 Apply a starter kit update
-
-Use this part whenever a new version of the starter kit is issued after Part 1.4 has been done. It copies only the files the new version changed, on a branch, and merges them through a pull request. The file `KIT_CHANGES.md` in the kit lists the changed files for each version.
-
-1. Unpack the new kit. Replace `<windows user>` as in Part 1.4, step 4.
+   In the output, each test appears under the name of its function, which starts with its number, for example `test_t5a_delete_log_file`. Each test file starts with a short explanation of what it checks, what a pass and a failure mean, and where its evidence is stored.
    ```bash
-   rm -rf /tmp/kit && \
-     unzip -o /mnt/c/Users/<windows user>/Downloads/release1_starter_kit.zip \
-     -d /tmp/kit
+   python -m pytest
    ```
-   If unzip reports `cannot find or open`, check the name in Downloads. A browser may add a number, such as `release1_starter_kit (1).zip`, or unpack the zip into a folder by itself.
-   ```bash
-   ls -lt /mnt/c/Users/<windows user>/Downloads/ | grep -i starter
-   ```
-   For a zip with another name, run step 1 again with that name in double quotes. For a folder (its line starts with `d`), copy it instead of unzipping, replacing `<folder>` with its name:
-   ```bash
-   rm -rf /tmp/kit && mkdir -p /tmp/kit && \
-     cp -r "/mnt/c/Users/<windows user>/Downloads/<folder>/release1-starter-kit" \
-     /tmp/kit/
-   ```
-2. Check that the kit is the version you expect. The first heading printed is the newest version:
-   ```bash
-   grep -m1 "^## Version" /tmp/kit/release1-starter-kit/KIT_CHANGES.md
-   ```
-3. Go to the workbench:
-   ```bash
-   cd ~/work/dpdp-on-aws-workbench && source .venv/bin/activate
-   ```
-4. Check what is waiting to be committed:
+9. Check that nothing in the copy has changed. It must say `nothing to commit, working tree clean`. Each evidence record names the Git commit of the code that produced it, and marks it `(with uncommitted changes)` when files differ from that commit.
    ```bash
    git status
    ```
-   It must say `nothing to commit, working tree clean`, or list only `.terraform.lock.hcl` files as untracked. Those are expected (see "Rules for every step") and are committed with this update in step 11. If any other file is listed, stop and find out why before continuing.
-5. Bring main up to date:
-   ```bash
-   git checkout main && git pull
-   ```
-6. Create a branch for the update. Every later step of this part runs on this branch.
-   ```bash
-   git checkout -b kit-update-$(date +%Y%m%d-%H%M)
-   ```
-7. Read the newest version's entry: the files it changed, and any extra step it needs:
-   ```bash
-   awk '/^## Version/{n++} n==1' /tmp/kit/release1-starter-kit/KIT_CHANGES.md
-   ```
-   If you skipped a version, read the whole file and apply every version you have not yet applied, oldest first:
-   ```bash
-   less /tmp/kit/release1-starter-kit/KIT_CHANGES.md
-   ```
-   Press **q** to close it.
-8. Copy each file listed under the version, one command per file, in this form:
-   ```bash
-   cp /tmp/kit/release1-starter-kit/<file> <file>
-   ```
-   If a listed file is new and sits in a folder the workbench does not have yet, the copy fails with `No such file or directory`. Create the folder first, in this form, and copy again:
-   ```bash
-   mkdir -p <folder>
-   ```
-   Then carry out any extra step written in the version's entry.
-9. Check that only the listed files changed, plus any `.terraform.lock.hcl` files from step 4. If any other file appears, stop.
-   ```bash
-   git status
-   ```
-10. Run the offline tests. They must report the same result as in Part 1.4, step 11.
-    ```bash
-    python -m pytest
-    ```
-11. Commit. The pre-commit checks run first.
-    ```bash
-    git add -A && git commit -m "Apply starter kit update of $(date +%d\ %B\ %Y)"
-    ```
-12. Push the branch:
-    ```bash
-    git push -u origin HEAD
-    ```
-13. **Console (GitHub):** open `dpdp-on-aws-workbench` → **Compare & pull request** → **Create pull request**. Wait until all three checks show a green tick. If one fails, select it, open the step with the red cross, and read its log before changing anything. When all three are green: **Merge pull request**, with **Create a merge commit** → **Confirm merge** → **Delete branch**.
-14. Return to main and pull the merge:
-    ```bash
-    git checkout main && git pull
-    ```
-15. Delete the update branch on the laptop as well. **Delete branch** on GitHub removes only GitHub's copy; the laptop keeps its own until it is deleted here. `-d` refuses to delete a branch whose work is not in main.
-    ```bash
-    git branch -d $(git branch --list "kit-update-*" --format="%(refname:short)")
-    ```
-16. Check that only main is left:
-    ```bash
-    git branch
-    ```
 
-### 1.6 The bootstrap log: a record of what you do by hand
+**Taking a later release.** Each release is added to this repository with its own guide. To take it, run `git pull` in `~/work/dpdp-on-aws` (or `git pull upstream main` if you made your own copy, below), then follow the new release's guide. It states anything that must be applied in AWS.
+
+**Your own copy on GitHub (optional).** If you want to change the code, for example to adapt the register to your own organisation, keep your copy in a **private** repository under your own account. A fork of a public repository is always public, so do not use a fork for this. Part 1.3 must be done first.
+
+1. In GitHub, choose **New repository**. Name it `dpdp-on-aws`, choose **Private**, leave every option to add files unticked, and choose **Create repository**.
+2. Keep the public repository as the source of later releases, under the name `upstream`:
+   ```bash
+   git remote rename origin upstream
+   ```
+3. Add your repository as the place your changes go:
+   ```bash
+   git remote add origin git@github.com:<your GitHub account>/dpdp-on-aws.git
+   ```
+4. Send the code to it:
+   ```bash
+   git push -u origin main
+   ```
+
+Part 10 sets the protections for your repository.
+
+### 1.5 The bootstrap log: a record of what you do by hand
 
 **Why:** Three parts of this build keep their own records. Git records the code. Terraform records what it has built, in its state. The tests write an evidence record of every result to a locked bucket. Nothing records the steps done by hand: the root user's MFA, IAM Identity Center, the permission sets and who holds them, the removal of root credentials, the checks read on screen, and the decisions taken along the way. The bootstrap log is that record.
 
@@ -451,47 +393,43 @@ It answers, with a date and saved output, the questions an auditor asks about an
 | `notes/bootstrap-log.md` | The activity log: one line per entry, with the date and time in IST, the part of this guide, what was done or decided, and the name of the saved output |
 | `notes/outputs/` | One text file per saved command output, with the part, time, note and command at the top |
 | `notes/screenshots/` | Console pages that are the only proof of a step |
-| `notes/bootstrap-log.template.md` | The empty log, part of the kit. The script copies it once, on first use |
+| `notes/bootstrap-log.template.md` | The empty log, part of the repository. The script copies it once, on first use |
 
-**Private, and never shown.** The log, the outputs and the screenshots contain account ids, the organisation id and email addresses. Git ignores all three, so they never reach the workbench or the public repository. None of them appears in the demonstration video: the video is drawn from the results of `scripts/demo_release1.sh`, shows only the lines that prove each point, and masks every id (Release 1 guide, Step 7). If a public post ever needs a picture of a console page, take a new screenshot for that purpose and blank the account numbers; never reuse one from `notes/screenshots/`.
-
-The other files in `notes/` are different. `notes/tool-versions.md`, `notes/decisions.md` and `notes/releases.md` hold no ids and are committed to the workbench as usual.
+**Private.** The log, the outputs and the screenshots contain account ids, the organisation id and email addresses. Git ignores all three, so they are never committed. If you ever need a picture of a console page for someone else, take a new screenshot for that purpose and blank the account numbers; never reuse one from `notes/screenshots/`.
 
 **Set it up (once)**
 
-1. Check that Git ignores the private files. The command must print three lines, each naming `.gitignore`. If it prints nothing, the kit update of 22 October 2026 has not been applied yet (Part 1.5).
+1. Check that Git ignores the private files. The command must print three lines, each naming `.gitignore`. If it prints nothing, `.gitignore` has been changed; restore it with `git checkout .gitignore` and run the check again.
    ```bash
    git check-ignore -v notes/bootstrap-log.md notes/outputs/x notes/screenshots/x
    ```
-2. Check that no earlier copy of the log is in Git. The list must not include `notes/bootstrap-log.md`.
+2. Start the log. The first use copies the template to `notes/bootstrap-log.md`, creates the folders `notes/outputs` and `notes/screenshots`, and adds the first line.
    ```bash
-   git ls-files notes
+   scripts/log_step.sh 1.5 "Bootstrap log started"
    ```
-   If it does, the file was committed before Git was told to ignore it. Take it out of Git while keeping it on the laptop, then commit and merge the change through a branch and pull request, as in Part 1.5, steps 6 and 11 to 16:
+3. Record the tool versions from Part 1.2. This is one command over several lines; paste it as it is.
    ```bash
-   git rm --cached notes/bootstrap-log.md
+   scripts/log_step.sh 1.2 "Tool versions" -- bash -c \
+     'aws --version; terraform version | head -1; tflint --version | head -1; \
+     trivy --version | head -1; gitleaks version; pre-commit --version; python3 --version'
    ```
-3. Start the log. The first use copies the template to `notes/bootstrap-log.md`, creates the folders `notes/outputs` and `notes/screenshots`, and adds the first line.
-   ```bash
-   scripts/log_step.sh 1.6 "Bootstrap log started"
-   ```
-4. Find the `notes` folder from Windows, for saving screenshots. Print your Ubuntu user name:
+4. Find the `notes` folder in your file manager, for saving screenshots. On Windows, print your Ubuntu user name first:
    ```bash
    whoami
    ```
-   In Windows File Explorer, type `\\wsl.localhost` in the address bar and press Enter. Open the Ubuntu folder shown there (its name may be `Ubuntu` or `Ubuntu-24.04`), then `home` → your Ubuntu user name → `work` → `dpdp-on-aws-workbench` → `notes`. Right-click `notes` in the left pane → **Pin to Quick access**.
+   In Windows File Explorer, type `\\wsl.localhost` in the address bar and press Enter. Open the Ubuntu folder shown there (its name may be `Ubuntu` or `Ubuntu-24.04`), then `home` → your Ubuntu user name → `work` → `dpdp-on-aws` → `notes`. Right-click `notes` in the left pane → **Pin to Quick access**. On macOS and Linux, the folder is `~/work/dpdp-on-aws/notes` in your home folder.
 
 **The three kinds of entry**
 
 **A. A step done in the console, or a decision.** One line, in this form:
 ```bash
-scripts/log_step.sh 3.3 \
-  "Identity Center: primary region us-east-1, identity source AWS Builder ID"
+scripts/log_step.sh 2 \
+  "Console: Mumbai region, root MFA, no keys, contacts, billing access, plan checked"
 ```
 A decision starts with `Decision:`, and says what was decided and why. For example:
 ```bash
-scripts/log_step.sh 3.3 \
-  "Decision: Identity Center stays in us-east-1; AWS cannot move it"
+scripts/log_step.sh 3.1 \
+  "Decision: organisation created in Part 3.0; Terraform imports it in Part 4"
 ```
 
 **B. A command whose output proves a step.** Put `scripts/log_step.sh <part> "<what this shows>" --` in front of the command. For example, the trail check in Part 7.3:
@@ -506,7 +444,7 @@ Inside a Terraform stack folder, call the script as `../../../../scripts/log_ste
 
 **C. A screenshot**, for the few steps where only a console page shows the result. This guide names each one at its step: `3.2-policies-on-root.png`, `3.4-permission-sets.png`, `5.1-permission-sets-provisioned.png`, `5.3-root-credentials-not-present.png` and `8-budget-alerts.png`.
 
-To save one:
+To save one on Windows:
 
 1. Press **Windows + Shift + S** and drag around the part of the page to keep.
 2. Click the notification that appears at the bottom right. Snipping Tool opens with the picture.
@@ -523,19 +461,18 @@ If Snipping Tool has already saved the picture by itself in `Pictures\Screenshot
 cp "/mnt/c/Users/<windows user>/Pictures/Screenshots/<file name>.png" \
   notes/screenshots/5.3-root-credentials-not-present.png
 ```
+On macOS, press **Command + Shift + 4**, drag around the area, then move the file from the desktop into `notes/screenshots` under the name given in the step, and log it as in item 5.
 
-**Back it up.** The log is not in Git, so a lost or broken laptop would lose it. Create a backup folder in a Windows folder that is backed up, such as your OneDrive (check its name in File Explorer; it may be `OneDrive - Personal`):
+**Back it up.** The log is not in Git, so a lost or broken laptop would lose it. At the end of each working session, copy the `notes` folder to a place that is backed up and private. On Windows, for example, to a folder in OneDrive (check its name in File Explorer; it may be `OneDrive - Personal`). Create the folder once:
 ```bash
 mkdir -p "/mnt/c/Users/<windows user>/OneDrive/dpdp-bootstrap-notes"
 ```
-At the end of each working session, copy the notes into it:
+Then copy the notes into it at the end of each session:
 ```bash
 cp -r -u notes/. "/mnt/c/Users/<windows user>/OneDrive/dpdp-bootstrap-notes/"
 ```
 
-**If you reach this part after Part 2 or later.** Run the logging commands of the parts you have already done, as they appear at their steps in this guide. The commands that read from AWS are safe to run again; they only read. Where you do not remember the day a step was done, the log shows the day you checked it, which is what it records.
-
-**Check:** `notes/bootstrap-log.md` exists, it has at least one line under "Activity log", and `git status` does not list it.
+**Check:** `notes/bootstrap-log.md` exists, it has at least two lines under "Activity log", and `git status` does not list it.
 
 ---
 
@@ -543,7 +480,12 @@ cp -r -u notes/. "/mnt/c/Users/<windows user>/OneDrive/dpdp-bootstrap-notes/"
 
 **Why:** The management account owns the organisation and pays for every account in it. Whoever controls it controls everything. These steps close the most common ways in: a root user without MFA, root access keys, and security notices that reach nobody.
 
-All steps in the AWS console, signed in as the **root user of the management account**: the email address and password set when advanced features were activated. In AWS Organizations, this account carries the label **management account**. In both guides it is called `dpdp-management`.
+All steps in the AWS console, signed in as the **root user of the management account**:
+
+- **Starting point A:** the email address and password set when advanced features were activated. In AWS Organizations, this account carries the label **management account**.
+- **Starting point B:** the email address and password of your AWS account. Part 3.0 makes it the management account.
+
+In both guides this account is called `dpdp-management`.
 
 AWS verifies a new account before every service is available, which can take up to two days. If any step fails with "account verification is in progress", wait and try that step again later.
 
@@ -552,50 +494,93 @@ AWS verifies a new account before every service is available, which can take up 
 3. **Root access keys:** on the same page, under **Access keys**, delete any key that exists. There must be none.
 4. **Alternate contacts:** account menu → **Account** → **Alternate contacts**. Add yourself for Billing, Operations and Security.
 5. **IAM access to billing:** account menu → **Account** → **IAM user and role access to Billing information** → **Edit** → tick **Activate IAM Access** → **Update**. Without this, Identity Center users cannot see costs.
-6. **Plan:** open **Billing and Cost Management**. The account is on the **Paid plan**, because it manages an organisation. Free Tier credits do not apply inside an organisation; AWS does not reinstate them. The build is paid from the start and capped by the budget in Part 8.
-7. **Password:** store the root password in a password manager. The root user is still needed for Parts 3.1 to 3.4, because no other sign-in has access yet. From Part 3.4, step D, onwards, root is used only for the few tasks that require it.
+6. **Plan:** open **Billing and Cost Management**. At starting point A, the account is on the **Paid plan**, because it manages an organisation. At starting point B, it may still show the **Free plan**; it moves to the Paid plan when Part 3.0 creates the organisation (see "Free plan credits" in Before you start). From Part 3 onwards the build is paid, and the budget in Part 8 watches it.
+7. **Password:** store the root password in a password manager. The root user is still needed for Parts 3.0 to 3.4, because no other sign-in has access yet. From Part 3.4, step D, onwards, root is used only for the few tasks that require it.
 
 **Check:** the IAM dashboard shows "Root user has MFA" and no root access keys.
 
-8. Log it. The command line does not work yet, so this is a line of text; Part 3.5, step 9, adds the proof from AWS once it does.
+8. Log it. The command line does not work yet, so this is a line of text; Part 3.5, step 10, adds the proof from AWS once it does.
    ```bash
    scripts/log_step.sh 2 \
-     "Console: Mumbai region, root MFA, no keys, contacts, billing access, Paid plan"
+     "Console: Mumbai region, root MFA, no keys, contacts, billing access, plan checked"
    ```
 
 ---
 
-## Part 3. Check the organisation and set up sign-in
+## Part 3. The organisation and sign-in
 
 **Why:** Terraform in Part 4 must work with the organisation as it actually is, and you need a way to sign in that is not the root user.
 
-AWS's sign-up flow has already created the organisation and IAM Identity Center. This part records what exists, checks the guardrails AWS attached, and sets up your sign-in. Nothing here is created twice.
+At starting point A, AWS's sign-up flow has already created the organisation and IAM Identity Center; this part records what exists, checks the guardrails AWS attached, and sets up your sign-in. Nothing is created twice. At starting point B, Part 3.0 first creates the organisation and IAM Identity Center.
+
+### 3.0 Create the organisation and IAM Identity Center (starting point B only)
+
+**At starting point A, skip to Part 3.1.**
+
+**Why:** The build needs an AWS organisation with all features, and IAM Identity Center for sign-in. Enabling IAM Identity Center in a standalone account creates both in one step, with your account as the management account.
+
+All steps in the console, signed in as the root user.
+
+1. Top right of the console, check that the region is **Asia Pacific (Mumbai)**. IAM Identity Center is created in the region selected now, and AWS cannot move it later. Mumbai keeps the sign-in records in India, with the rest of the build.
+2. Open **IAM Identity Center** and choose **Enable**. If the console asks for an instance configuration, choose **Single-Region instance**. Leave the encryption key as the AWS managed key, and leave multi-account permissions switched on.
+3. The page **Enable IAM Identity Center with AWS Organizations** appears. It explains that a new organisation will be created with your account as its management account. Choose **Enable**. If AWS sends an email asking you to verify the organisation's email address, open it and verify.
+4. **Settings** → **Identity source** tab. The identity source is **Identity Center directory**: users are created in IAM Identity Center itself. Keep it.
+5. **Settings** → **Authentication** tab → **Multi-factor authentication** → **Configure**. Set:
+   - **Prompt users for MFA:** **Every time they sign in (always-on)**.
+   - **Users can authenticate with these MFA types:** **Authenticator apps**.
+   - **If a user does not yet have a registered MFA device:** **Require them to register an MFA device at sign in**.
+
+   Choose **Save changes**.
+6. Create your Identity Center user: **Users** → **Add user**.
+   - **Username:** a short name of your choice, for example your first name.
+   - **Password:** **Send an email to this user with password setup instructions**.
+   - **Email address:** your own email address.
+   - **First name** and **Last name**: yours. Choose **Next**, then **Next** again without adding a group, then **Add user**.
+7. Open the email **Invitation to join IAM Identity Center** and choose **Accept invitation**. The invitation is valid for seven days. Set a password. At the first sign-in, register an authenticator app as the page asks. It can sit in the same authenticator app as the root MFA, as a separate entry.
+8. Log it:
+   ```bash
+   scripts/log_step.sh 3.0 \
+     "Organisation and Identity Center created; directory user with MFA always on"
+   ```
+9. Log the decision on the region:
+   ```bash
+   scripts/log_step.sh 3.0 \
+     "Decision: Identity Center in ap-south-1, identity source Identity Center directory"
+   ```
 
 ### 3.1 Record the organisation (console)
 
-**Why:** Terraform needs the organisation id in Part 4. The account list shows which accounts belong to the build and which were created by AWS and stay out of it.
+**Why:** Terraform needs the organisation id in Part 4. The account list shows which accounts belong to the build and which do not.
 
 1. Open **AWS Organizations** → **AWS accounts**. Find the **organisation id** (`o-` followed by ten characters, bottom left). It goes into `terraform.tfvars` in Part 4. Part 3.5, step 9, saves it in the bootstrap log from the command line.
-2. Three accounts sit at **Root**, with no organisational units yet:
+2. Look at the accounts at **Root**. There are no organisational units yet.
 
-| Account | What it is | Use in this build |
-|---|---|---|
-| `<team name>` Management Account | The management account (`dpdp-management`). It owns the organisation and pays all bills. Guardrails never apply to it | All management steps |
-| Your project account | Created by the sign-up flow. Owned through your AWS Builder ID. AWS does not allow it to be removed from the organisation | None. Keep it empty |
-| Identity Delegated Admin | Created by AWS. Holds the administrator rights for IAM Identity Center | None. Leave it as it is |
+   **Starting point A:** three accounts.
 
-3. Find the three account ids in the list. Part 3.5, step 9, saves them in the bootstrap log.
-4. **Policies:** note that **Service control policies** and **Resource control policies** both show **Enabled**.
+   | Account | What it is | Use in this build |
+   |---|---|---|
+   | `<team name>` Management Account | The management account (`dpdp-management`). It owns the organisation and pays all bills. Guardrails never apply to it | All management steps |
+   | Your project account | Created by the sign-up flow. Owned through your AWS Builder ID. AWS does not allow it to be removed from the organisation | None. Keep it empty |
+   | Identity Delegated Admin | Created by AWS. Holds the administrator rights for IAM Identity Center | None. Leave it as it is |
+
+   **Starting point B:** one account, your own, marked **management account**.
+3. Find the account ids in the list. Part 3.5, step 9, saves them in the bootstrap log.
+4. **Policies:** note whether **Service control policies** show **Enabled**. At starting point A, **Resource control policies** also show **Enabled**. At starting point B, either may show **Disabled**; Terraform enables service control policies in Part 4, and this build does not need resource control policies.
 5. **Services:** note the services that show trusted access as enabled. The Terraform in Part 4 keeps every one of them and adds the ones this build needs.
-6. Log the decision:
+6. Log the decision. At starting point A:
    ```bash
    scripts/log_step.sh 3.1 \
      "Decision: organisation from AWS sign-up flow; Terraform imports it in Part 4"
    ```
+   At starting point B:
+   ```bash
+   scripts/log_step.sh 3.1 \
+     "Decision: organisation created in Part 3.0; Terraform imports it in Part 4"
+   ```
 
-### 3.2 Check the guardrails AWS attached (console)
+### 3.2 Check the guardrails already attached (console)
 
-AWS attaches its own guardrails to organisations created through its sign-up flow. One of them restricts regions. If that one sits on Root, it would apply to every DPDP account and block Mumbai, so it is checked now.
+At starting point A, AWS attaches its own guardrails to the organisation. One of them restricts regions. If that one sits on Root, it would apply to every DPDP account and block Mumbai, so it is checked now. At starting point B, Root normally holds only `FullAWSAccess`; check it all the same.
 
 1. **AWS Organizations** → **AWS accounts** → select **Root** → **Policies** tab.
 2. Under **Service control policies**, open each policy attached to Root, one at a time, and read its JSON.
@@ -604,18 +589,18 @@ AWS attaches its own guardrails to organisations created through its sign-up flo
 | What the policy contains | What to do |
 |---|---|
 | `FullAWSAccess` | Keep. AWS attaches it by default |
-| `BlockOrgEscape` and `ProtectManagedRoles` | Keep. It stops accounts leaving or being closed from inside, and protects AWS's own roles under `role/managed/`. It cannot be changed and does not affect this build |
-| `RegionFloor` (allows only `us-east-1`, `us-west-2` and one selected region) | **Do not continue.** On the policy's **Targets** tab, detach it from Root and attach it to your project account instead. If AWS refuses the change, stop and open a support case: the DPDP accounts cannot use Mumbai while it sits on Root |
+| `BlockOrgEscape` and `ProtectManagedRoles` (starting point A) | Keep. It stops accounts leaving or being closed from inside, and protects AWS's own roles under `role/managed/`. It cannot be changed and does not affect this build |
+| `RegionFloor` (starting point A; allows only `us-east-1`, `us-west-2` and one selected region) | **Do not continue.** On the policy's **Targets** tab, detach it from Root and attach it to your project account instead. If AWS refuses the change, stop and open a support case: the DPDP accounts cannot use Mumbai while it sits on Root |
 
-4. Under **Resource control policies**, open each policy attached to Root:
+4. Under **Resource control policies**, if they are enabled, open each policy attached to Root:
 
 | What the policy contains | What to do |
 |---|---|
 | `RCPFullAWSAccess` | Keep. AWS attaches it by default |
-| `DenyAnyoneOutsideMyOrgAndAWS` | Keep. Only principals inside the organisation, and AWS services acting for it, can reach S3, KMS, DynamoDB and similar resources. It matches this build's design |
+| `DenyAnyoneOutsideMyOrgAndAWS` (starting point A) | Keep. Only principals inside the organisation, and AWS services acting for it, can reach S3, KMS, DynamoDB and similar resources. It matches this build's design |
 
-5. Select each of the three accounts in turn and repeat steps 2 to 4 on its **Policies** tab, so you know what applies to each account directly.
-6. Save the screenshot `3.2-policies-on-root.png` of the Root **Policies** tab (Part 1.6), and log it, with what you found about `RegionFloor`:
+5. Select each account at Root in turn and repeat steps 2 to 4 on its **Policies** tab, so you know what applies to each account directly.
+6. Save the screenshot `3.2-policies-on-root.png` of the Root **Policies** tab (Part 1.5), and log it, with what you found about `RegionFloor`:
    ```bash
    scripts/log_step.sh 3.2 \
      "Screenshot 3.2-policies-on-root.png; no RegionFloor policy on Root"
@@ -640,10 +625,11 @@ AWS attaches its own guardrails to organisations created through its sign-up flo
 
 Rule 6(1)(b) requires access control, and test T7 proves that no account holds IAM users with stored passwords or keys.
 
-**Root user and your Identity Center user are two different sign-ins,** even though they use the same email address:
+**The root user and your Identity Center user are two different sign-ins:**
 
-| | Root user of the management account | Your Identity Center user (Builder ID) |
+| | Root user of the management account | Your Identity Center user |
 |---|---|---|
+| Who it is | The account's owner | Your AWS Builder ID (starting point A), or the user created in Part 3.0 (starting point B) |
 | Sign-in | Console, "Root user", email and password | The access portal URL, or `aws sso login` |
 | What it can do | Everything, always; nothing can restrict it | Nothing, until a permission set is assigned to it |
 | Session | Until you sign out | Ends after the permission set's session duration |
@@ -652,20 +638,25 @@ Rule 6(1)(b) requires access control, and test T7 proves that no account holds I
 
 Root is the last resort. BreakGlassAdmin is the strongest everyday access, used for setup tasks. Each sign-in has its own password and its own MFA: the root MFA from Part 2 does not protect the Identity Center user.
 
-The AWS console steps in 3.3 and 3.4 are done signed in as the root user, because no Identity Center access exists yet. Step 3 of 3.3 is the exception: the Builder ID profile uses your Builder ID sign-in.
+The console steps in 3.3 and 3.4 are done signed in as the root user, because no Identity Center access exists yet. At starting point A, step 3 of 3.3 is the exception: it uses your Builder ID sign-in.
 
-1. Open **IAM Identity Center** → **Settings**. If the console shows no instance, switch the region to **US East (N. Virginia)**: the sign-up flow creates Identity Center there.
+1. Open **IAM Identity Center** → **Settings**. If the console shows no instance, switch to the Identity Center region: **US East (N. Virginia)** at starting point A, **Asia Pacific (Mumbai)** at starting point B.
 2. Read these three settings. Step 4 logs them.
-   - **Primary Region** (normally `us-east-1`). AWS cannot move an instance to another region. Sign-in data stays in that region; every DPDP resource stays in Mumbai.
-   - **AWS access portal URL, Dual-stack** (`https://ssoins-…portal.<region>.app.aws`), under **Identity source** → **AWS access portal URLs**. It goes into the command-line configuration in Part 3.5. Do not use the IPv4-only link there: the command line does not accept it as a start URL for this kind of instance.
-   - **Identity source:** AWS Builder ID. Your Identity Center user is your Builder ID. Keep this source: AWS does not allow a change away from Builder ID to be reversed.
-3. **MFA for your Identity Center user:** open your Builder ID profile at `https://profile.aws.amazon.com` → **Security** → register an authenticator app. It can sit in the same authenticator app as the root MFA, as a separate entry. Sign out and sign in again to confirm it asks for the code.
-4. Log the settings and the MFA:
+   - **Primary Region**: `us-east-1` at starting point A, `ap-south-1` at starting point B. AWS cannot move an instance to another region. Sign-in data stays in that region; every DPDP resource stays in Mumbai.
+   - **AWS access portal URL**, under **Identity source** → **AWS access portal URLs**. It goes into the command-line configuration in Part 3.5. If the page lists a **Dual-stack** link (`https://ssoins-…portal.<region>.app.aws`), use that one: the command line does not accept the IPv4-only link as a start URL for some instances.
+   - **Identity source:** **AWS Builder ID** at starting point A; keep it, because AWS does not allow a change away from Builder ID to be reversed. **Identity Center directory** at starting point B.
+3. **MFA for your Identity Center user.** At starting point A: open your Builder ID profile at `https://profile.aws.amazon.com` → **Security** → register an authenticator app. It can sit in the same authenticator app as the root MFA, as a separate entry. Sign out and sign in again to confirm it asks for the code. At starting point B, this was done in Part 3.0.
+4. Log the settings and the MFA. At starting point A:
    ```bash
    scripts/log_step.sh 3.3 \
      "Identity Center: region us-east-1, source AWS Builder ID, Builder ID MFA on"
    ```
-5. Log the decision that comes with the region:
+   At starting point B:
+   ```bash
+   scripts/log_step.sh 3.3 \
+     "Identity Center: region ap-south-1, source Identity Center directory, MFA on"
+   ```
+5. At starting point A, log the decision that comes with the region (at starting point B it was logged in Part 3.0):
    ```bash
    scripts/log_step.sh 3.3 \
      "Decision: Identity Center stays in us-east-1; AWS cannot move it"
@@ -675,9 +666,9 @@ The AWS console steps in 3.3 and 3.4 are done signed in as the root user, becaus
 
 **Why:** A permission set decides what a person may do in an account. Assigning `BreakGlassAdmin` to the management account gives your Identity Center user the access needed for Parts 3.5 to 10, so the root user can be put away.
 
-All in **IAM Identity Center**, region **US East (N. Virginia)**, signed in as the root user of the management account.
+All in **IAM Identity Center**, in the Identity Center region, signed in as the root user of the management account.
 
-**Switch on multi-account permissions.** The sign-up flow leaves this off; until it is on, the left menu has no **Multi-account permissions** section.
+**Multi-account permissions.** If the left menu already shows a **Multi-account permissions** section, with **AWS accounts** and **Permission sets**, go to A. Otherwise (the sign-up flow of starting point A leaves it off), switch it on:
 
 1. **Settings** → **Management** tab.
 2. In **Enable multi-account permissions**, choose **Enable**, and confirm if asked.
@@ -707,7 +698,7 @@ For each round:
 2. Expand **AWS managed policies**. Search for and tick **PowerUserAccess**, then search for and tick **IAMReadOnlyAccess**. Leave the other sections empty. Choose **Next**.
 3. **Permission set name:** `PlatformEngineer`. **Session duration:** 4 hours. Choose **Next**, then **Create**.
 
-**Check:** the **Permission sets** page lists four entries. Save the screenshot `3.4-permission-sets.png` (Part 1.6), and log it:
+**Check:** the **Permission sets** page lists four entries. Save the screenshot `3.4-permission-sets.png` (Part 1.5), and log it:
 ```bash
 scripts/log_step.sh 3.4 "Screenshot 3.4-permission-sets.png: four permission sets"
 ```
@@ -715,23 +706,23 @@ scripts/log_step.sh 3.4 "Screenshot 3.4-permission-sets.png: four permission set
 **C. Give your Identity Center user access to the management account:**
 
 1. **Multi-account permissions** → **AWS accounts**.
-2. Tick the management account (`<team name> Management Account`).
-3. **Assign users or groups** → **Users** tab → tick your user (your Builder ID) → **Next**.
+2. Tick the management account.
+3. **Assign users or groups** → **Users** tab → tick your user → **Next**.
 4. Tick **BreakGlassAdmin** → **Next** → **Submit**. Wait until the page shows that provisioning succeeded.
 
 **D. Stop using root:**
 
 1. Sign out of the root user.
-2. Open the access portal URL from Part 3.3 and sign in with your Builder ID and its MFA.
+2. Open the access portal URL from Part 3.3 and sign in with your Identity Center user and its MFA.
 3. The portal lists the management account with **BreakGlassAdmin**. From here on, use this sign-in for console work. Root is used only for the few tasks that require it.
 
 ### 3.5 Command-line sign-in
 
 **Why:** Everything run from the laptop needs AWS credentials: Terraform, the AWS command line, the scripts, and the Python tests and tools, which reach AWS through the boto3 library. `aws sso login` obtains **temporary** credentials for your Identity Center user and keeps them on the laptop until the session ends. Every tool then finds them through a profile name in `~/.aws/config`, such as `dpdp-mgmt-admin`, which says which account and which permission set to use. No access keys are ever stored, which is what Rule 6(1)(b) and test T7 require.
 
-1. Go to the workbench (if you are not there already):
+1. Go to the repository folder (if you are not there already):
    ```bash
-   cd ~/work/dpdp-on-aws-workbench && source .venv/bin/activate
+   cd ~/work/dpdp-on-aws && source .venv/bin/activate
    ```
 2. Create the AWS configuration folder:
    ```bash
@@ -745,20 +736,25 @@ scripts/log_step.sh 3.4 "Screenshot 3.4-permission-sets.png: four permission set
    ```bash
    nano ~/.aws/config
    ```
-5. The file now holds the template from step 3. Change **two lines**; leave everything else as it is. Move with the arrow keys.
+5. The file now holds the template from step 3. Change **two lines** (three at starting point B); leave everything else as it is. Move with the arrow keys.
 
-   **Change these two:**
+   **Change these:**
 
-   - Near the top, under `[sso-session dpdp]`, the start URL line. Replace the whole address with your Dual-stack access portal URL (IAM Identity Center → **Settings** → **Identity source** tab → **AWS access portal URLs** → the **Dual-stack** link, ending in `.app.aws`):
+   - Near the top, under `[sso-session dpdp]`, the start URL line. Replace the whole address with your access portal URL from Part 3.3 (IAM Identity Center → **Settings** → **Identity source** tab → **AWS access portal URLs**; the **Dual-stack** link, ending in `.app.aws`, where one is listed):
      ```
-     sso_start_url = <Dual-stack access portal URL>
+     sso_start_url = <access portal URL>
      ```
    - Under `[profile dpdp-mgmt-admin]` **only**, replace `111111111111` with the management account id (AWS Organizations → **AWS accounts** → the 12-digit number under the account marked **management account**):
      ```
      sso_account_id = <management account id>
      ```
 
-   **Check, normally already correct:** `sso_region` under `[sso-session dpdp]` must match **Primary Region** in IAM Identity Center → **Settings** → **Details**. For an organisation created through AWS's sign-up flow it is `us-east-1`, which the template already holds.
+   - **Starting point B only:** under `[sso-session dpdp]`, the region line. The template holds `us-east-1`; change it to Mumbai:
+     ```
+     sso_region = ap-south-1
+     ```
+
+   **Check:** `sso_region` under `[sso-session dpdp]` must match **Primary Region** in IAM Identity Center → **Settings** → **Details**: `us-east-1` at starting point A, which the template already holds, and `ap-south-1` at starting point B.
 
    **Leave these profiles exactly as they are:**
 
@@ -773,7 +769,7 @@ scripts/log_step.sh 3.4 "Screenshot 3.4-permission-sets.png: four permission set
    ```bash
    aws sso login --sso-session dpdp
    ```
-   Ubuntu in WSL cannot open the Windows browser itself, so the command prints a long link starting `https://oidc.` and waits. Copy that link into your browser on Windows, sign in with your Builder ID and its MFA, and choose **Allow access**. The browser hands control back to the terminal, which prints `Successfully logged into Start URL`. Every later sign-in in both guides works the same way.
+   Ubuntu in WSL cannot open the Windows browser itself, so the command prints a long link starting `https://oidc.` and waits. Copy that link into your browser on Windows, sign in with your Identity Center user and its MFA, and choose **Allow access**. The browser hands control back to the terminal, which prints `Successfully logged into Start URL`. Every later sign-in in both guides works the same way.
 
    To have the browser open by itself in future, install the WSL helper once:
    ```bash
@@ -783,7 +779,7 @@ scripts/log_step.sh 3.4 "Screenshot 3.4-permission-sets.png: four permission set
    ```bash
    echo 'export BROWSER=wslview' >> ~/.bashrc && source ~/.bashrc
    ```
-7. Check who you are signed in as, and keep the output in the bootstrap log (Part 1.6):
+7. Check who you are signed in as, and keep the output in the bootstrap log (Part 1.5):
    ```bash
    scripts/log_step.sh 3.5 "Sign-in check, management account" -- \
      aws sts get-caller-identity --profile dpdp-mgmt-admin
@@ -825,23 +821,23 @@ scripts/log_step.sh 3.4 "Screenshot 3.4-permission-sets.png: four permission set
 **Why:** The DPDP accounts are created from code rather than by hand. Their settings are written down, every change is shown in a plan before it happens, and the code itself can be shown to an auditor. Separate accounts keep the logs and evidence apart from the systems that hold personal data, so a mistake or a compromise in one does not reach the other.
 
 
-**What the organisation will look like after this part.** Terraform creates three organisational units (OUs) and four DPDP accounts. The three accounts that already exist stay at Root.
+**What the organisation will look like after this part.** Terraform creates three organisational units (OUs) and four DPDP accounts. The accounts that already exist stay at Root.
 
 | Where | Account | What it holds | Guardrails attached in Part 9 |
 |---|---|---|---|
 | Root | Management account (`dpdp-management`) | The organisation, billing, IAM Identity Center administration, the organisation trail and the budget. No personal data and no workloads | None: AWS never applies guardrails to the management account |
-| Root | Your project account | Created by AWS's sign-up flow. Not part of the build; stays empty | None from this build |
-| Root | Identity Delegated Admin | Created by AWS to administer IAM Identity Center. Not part of the build | None from this build |
+| Root (starting point A) | Your project account | Created by AWS's sign-up flow. Not part of the build; stays empty | None from this build |
+| Root (starting point A) | Identity Delegated Admin | Created by AWS to administer IAM Identity Center. Not part of the build | None from this build |
 | Security OU | `dpdp-log-archive` | The audit logs of every account, and the test evidence, locked under Object Lock | region, baseline, buckets |
 | Security OU | `dpdp-audit` | Reserved for security monitoring and the auditor's read-only work in later releases. Empty in Release 1 | region, baseline, buckets |
 | Workloads OU | `dpdp-workload` | **Production** for Fernleaf Finance (fictional): its six data stores, with synthetic data | region, baseline, buckets, cost |
-| Sandbox OU | `dpdp-sandbox` | **Test**: trials, the first guardrail tests, and the clean-room test of each release | region, baseline, cost |
+| Sandbox OU | `dpdp-sandbox` | **Test**: trials, and the first guardrail tests | region, baseline, cost |
 
 **Why three OUs.** An OU groups accounts that need the same guardrails, so a rule is attached once to the OU rather than to each account. **Security** keeps the records about the system (logs and evidence) away from the system that holds personal data, so nobody working on that data can reach or change them; Rule 6(1)(c) and Rule 6(1)(e) depend on this separation. **Workloads** holds the personal data and receives every guardrail. **Sandbox** is where mistakes are allowed: each guardrail is tried there first.
 
-**Production and test.** `dpdp-workload` is the production account of Fernleaf Finance (fictional): the demonstration and the live tests run against it. `dpdp-sandbox` is the test account. A real company would usually split workloads further, for example separate development and production accounts inside the Workloads OU; this build uses one workload account to keep costs low, and a further account can be added to the same OU later without changing anything else.
+**Production and test.** `dpdp-workload` is the production account of Fernleaf Finance (fictional): the live tests run against it. `dpdp-sandbox` is the test account. A real company would usually split workloads further, for example separate development and production accounts inside the Workloads OU; this build uses one workload account to keep costs low, and a further account can be added to the same OU later without changing anything else.
 
-**Code and accounts are different things.** The workbench (private) and the public repository `dpdp-on-aws` hold the code. The AWS accounts are real environments that the code creates and changes. Nothing in AWS is stored in the repositories, and no account details are stored in Git.
+**Code and accounts are different things.** The repository `dpdp-on-aws` holds the code. The AWS accounts are real environments that the code creates and changes. Nothing in AWS is stored in the repositories, and no account details are stored in Git.
 
 ### 4.1 State bucket for the management account
 
@@ -893,9 +889,9 @@ scripts/log_step.sh 3.4 "Screenshot 3.4-permission-sets.png: four permission set
    ```
 
    - `organization_id`: replace `o-xxxxxxxxxx` with the organisation id recorded in Part 3.1, keeping the quotation marks.
-   - The four email addresses: replace `yourname` with the part of your Gmail address before the `@`. For example, with `asha.rao@gmail.com` the first line becomes `"log-archive" = "asha.rao+dpdp-logarchive@gmail.com"`.
+   - The four email addresses: replace `yourname` with the part of your email address before the `@`, and `gmail.com` with the part after it if yours is different. For example, with `asha.rao@gmail.com` the first line becomes `"log-archive" = "asha.rao+dpdp-logarchive@gmail.com"`. Each address must not be used by any other AWS account.
 
-   **Why four different addresses:** AWS requires every account to have its own root email address, used by no other AWS account. Gmail delivers any address of the form `name+anything@gmail.com` to the inbox of `name@gmail.com`, so all four reach your one inbox while AWS sees four different addresses. The text after the `+` shows which account a message is about.
+   **Why four different addresses:** AWS requires every account to have its own root email address, used by no other AWS account. Providers such as Gmail and Outlook deliver any address of the form `name+anything@domain` to the inbox of `name@domain`, so all four reach your one inbox while AWS sees four different addresses. The text after the `+` shows which account a message is about.
 
    Save with **Ctrl+O**, Enter, and close with **Ctrl+X**. Git ignores this file, so the addresses and the organisation id never reach the repository.
 6. Initialise Terraform:
@@ -912,8 +908,8 @@ scripts/log_step.sh 3.4 "Screenshot 3.4-permission-sets.png: four permission set
 - 1 resource to import (the organisation) and **no** resource to destroy
 - 3 organisational units, 4 accounts, 4 policies to add
 - 0 policy attachments (guardrails are attached later, in stages)
-- The organisation itself shows 1 change: `cloudtrail.amazonaws.com` is **added** to `aws_service_access_principals`. Every service recorded in Part 3.5, step 8, stays in the list, and `enabled_policy_types` keeps both `RESOURCE_CONTROL_POLICY` and `SERVICE_CONTROL_POLICY`. If the plan **removes** anything from either list, stop
-- The project account and Identity Delegated Admin do not appear in the plan. Terraform does not manage them
+- The organisation itself shows 1 change, which only **adds**. Terraform adds to `aws_service_access_principals` whichever of `account.amazonaws.com`, `cloudtrail.amazonaws.com`, `iam.amazonaws.com` and `sso.amazonaws.com` are not yet enabled (at starting point A, normally only `cloudtrail.amazonaws.com`), and adds `SERVICE_CONTROL_POLICY` to `enabled_policy_types` if it is not there. Every service recorded in Part 3.5, step 8, stays in the list, and every policy type already enabled stays. If the plan **removes** anything from either list, stop
+- At starting point A, the project account and Identity Delegated Admin do not appear in the plan. Terraform does not manage them
 
 8. Apply the plan:
    ```bash
@@ -930,14 +926,14 @@ scripts/log_step.sh 3.4 "Screenshot 3.4-permission-sets.png: four permission set
    ../../../../scripts/log_step.sh 4.2 \
      "Decision: account limit raised by AWS, support case <case number>"
    ```
-10. Return to the workbench folder:
+10. Return to the repository folder:
     ```bash
-    cd ~/work/dpdp-on-aws-workbench
+    cd ~/work/dpdp-on-aws
     ```
 
 Account creation takes a few minutes per account.
 
-**Check:** AWS Organizations in the console shows the Security, Workloads and Sandbox units and the four accounts inside them. The management account, the project account and Identity Delegated Admin stay at Root.
+**Check:** AWS Organizations in the console shows the Security, Workloads and Sandbox units and the four accounts inside them. The management account stays at Root, and at starting point A so do the project account and Identity Delegated Admin.
 
 ---
 
@@ -959,13 +955,13 @@ Account creation takes a few minutes per account.
 
 For each of the four new accounts, signed in through the access portal with `BreakGlassAdmin` on the management account, or as root if that is not yet possible:
 
-1. **IAM Identity Center** (region **US East (N. Virginia)**) → **Multi-account permissions** → **AWS accounts**.
+1. **IAM Identity Center** (in the Identity Center region) → **Multi-account permissions** → **AWS accounts**.
 2. Tick the account.
-3. **Assign users or groups** → **Users** tab → tick your user (your Builder ID) → **Next**.
+3. **Assign users or groups** → **Users** tab → tick your user → **Next**.
 4. Tick every permission set listed for that account in the table above → **Next** → **Submit**.
 5. Wait until the page shows that provisioning succeeded.
 
-**Check:** **Multi-account permissions** → **Permission sets** shows all four permission sets as **Provisioned**. Save the screenshot `5.1-permission-sets-provisioned.png` (Part 1.6), and log it:
+**Check:** **Multi-account permissions** → **Permission sets** shows all four permission sets as **Provisioned**. Save the screenshot `5.1-permission-sets-provisioned.png` (Part 1.5), and log it:
 ```bash
 scripts/log_step.sh 5.1 \
   "Screenshot 5.1-permission-sets-provisioned.png: assigned as in the table"
@@ -1012,7 +1008,7 @@ This must be done before guardrail stage A, because the `baseline` guardrail blo
 
 1. **IAM** (management account) → **Root access management** → **Enable**. Tick **Root credentials management** and **Privileged root actions in member accounts**.
 2. For each of the four member accounts: select it → **Take privileged action** → **Delete root user credentials** (if the option shows credentials present).
-3. Save the screenshot `5.3-root-credentials-not-present.png` (Part 1.6), and log it:
+3. Save the screenshot `5.3-root-credentials-not-present.png` (Part 1.5), and log it:
    ```bash
    scripts/log_step.sh 5.3 "Root credentials of the four member accounts: Not present"
    ```
@@ -1075,9 +1071,9 @@ Each command prints two lines, a `bucket` line and a `profile` line, for its own
    ```bash
    terraform apply b.tfplan
    ```
-10. Return to the workbench folder:
+10. Return to the repository folder:
     ```bash
-    cd ~/work/dpdp-on-aws-workbench
+    cd ~/work/dpdp-on-aws
     ```
 
 **Baselines for the workload and sandbox accounts**
@@ -1130,9 +1126,22 @@ Each command prints two lines, a `bucket` line and a `profile` line, for its own
    ```bash
    cp terraform.tfvars.example terraform.tfvars
    ```
-5. Open it and set the management id, organisation id, workload id and sandbox id. Save and close.
+5. Show the ids it needs, saved in Part 3.5, step 9 (organisation id and management account id) and Part 4.2, step 9 (the new account ids):
+   ```bash
+   cat ../../../../notes/outputs/*part-3.1.txt ../../../../notes/outputs/*part-4.2.txt
+   ```
+   Open the file:
    ```bash
    nano terraform.tfvars
+   ```
+   Replace the four example values with those ids, keeping the quotation marks. Leave the commented line `# live_evidence_retention_days` as it is. Save with **Ctrl+O**, Enter, and close with **Ctrl+X**.
+
+   **File content** (before):
+   ```
+   management_account_id = "111111111111"
+   organization_id       = "o-xxxxxxxxxx"
+   workload_account_id   = "333333333333"
+   sandbox_account_id    = "444444444444"
    ```
 6. Initialise:
    ```bash
@@ -1156,9 +1165,9 @@ The plan adds three locked buckets, each with versioning, Object Lock, encryptio
    ../../../../scripts/log_step.sh 7.1 "Log and evidence bucket names" -- \
      terraform output
    ```
-10. Return to the workbench folder:
+10. Return to the repository folder:
     ```bash
-    cd ~/work/dpdp-on-aws-workbench
+    cd ~/work/dpdp-on-aws
     ```
 
 ### 7.2 Organisation trail (management account)
@@ -1206,9 +1215,9 @@ The plan adds three locked buckets, each with versioning, Object Lock, encryptio
     ```bash
     ../../../../scripts/log_step.sh 7.2 "Organisation trail ARN" -- terraform output
     ```
-12. Return to the workbench folder:
+12. Return to the repository folder:
     ```bash
-    cd ~/work/dpdp-on-aws-workbench
+    cd ~/work/dpdp-on-aws
     ```
 
 ### 7.3 Checks
@@ -1271,9 +1280,9 @@ The plan adds three locked buckets, each with versioning, Object Lock, encryptio
    ```bash
    terraform apply cost.tfplan
    ```
-9. Return to the workbench folder:
+9. Return to the repository folder:
    ```bash
-   cd ~/work/dpdp-on-aws-workbench
+   cd ~/work/dpdp-on-aws
    ```
 10. Keep the management account id in a short value, `A`, for the next step:
     ```bash
@@ -1289,7 +1298,7 @@ The plan adds three locked buckets, each with versioning, Object Lock, encryptio
 
 The budget is USD 18 a month for the whole organisation (about INR 1,500), with emails at one third, two thirds and the full amount, and when the forecast exceeds it.
 
-12. **Console:** **Billing and Cost Management** → **Budgets** → `dpdp-monthly`. Save the screenshot `8-budget-alerts.png` of its alerts (Part 1.6), and log it:
+12. **Console:** **Billing and Cost Management** → **Budgets** → `dpdp-monthly`. Save the screenshot `8-budget-alerts.png` of its alerts (Part 1.5), and log it:
     ```bash
     scripts/log_step.sh 8.1 \
       "Screenshot 8-budget-alerts.png: four alerts on dpdp-monthly"
@@ -1330,42 +1339,6 @@ All steps are in the management account, signed in through the access portal wit
      --query "AnomalySubscriptions[].[SubscriptionName,Frequency]" --output text
    ```
 
-### 8.3 Commit the Terraform lock files
-
-**Why:** Parts 4 to 8 ran `terraform init` in seven stacks, and each created a `.terraform.lock.hcl` file (see "Rules for every step"). Committing them fixes the AWS provider version for every later run, on this laptop and in the checks on GitHub.
-
-1. List the lock files not yet in Git:
-   ```bash
-   git status
-   ```
-   Only `.terraform.lock.hcl` files may be listed. If any other file is listed, stop and find out why.
-2. Create a branch:
-   ```bash
-   git checkout -b lock-files-$(date +%Y%m%d-%H%M)
-   ```
-3. Add the lock files:
-   ```bash
-   git add terraform/live/*/*/.terraform.lock.hcl
-   ```
-4. Commit:
-   ```bash
-   git commit -m "Add Terraform provider lock files"
-   ```
-5. Push the branch:
-   ```bash
-   git push -u origin HEAD
-   ```
-6. **Console (GitHub):** **Compare & pull request** → **Create pull request**. When all three checks are green: **Merge pull request**, with **Create a merge commit** → **Confirm merge** → **Delete branch**.
-7. Return to main:
-   ```bash
-   git checkout main && git pull
-   ```
-8. Delete the branch on the laptop:
-   ```bash
-   git branch -d $(git branch --list "lock-files-*" --format="%(refname:short)")
-   ```
-
-**Check:** `git status` says `nothing to commit, working tree clean`.
 
 ---
 
@@ -1402,9 +1375,9 @@ The guardrails are attached by editing one variable in `terraform/live/managemen
    ```bash
    terraform apply org.tfplan
    ```
-6. Return to the workbench folder:
+6. Return to the repository folder:
    ```bash
-   cd ~/work/dpdp-on-aws-workbench
+   cd ~/work/dpdp-on-aws
    ```
 
 ### Stage A: Sandbox
@@ -1518,11 +1491,11 @@ The full set of these tests runs automatically in the Release 1 guide (tests T5 
 
 **Where it can be lifted.** Only from the management account, because guardrails never apply there. It is done with the organisation stack and the same `terraform.tfvars` as stages A to C, and only for the minutes the change takes.
 
-**Where the change itself comes from.** You never edit the bucket code by hand. The release that needs the change ships it as a starter kit update: new versions of files in `terraform/live/log-archive/logging/` or `terraform/modules/locked-bucket/`, listed in `KIT_CHANGES.md` together with what changes in AWS. For example, a release that lets the audit account read the evidence bucket would ship a new bucket policy; its plan would show `aws_s3_bucket_policy` as `will be updated in-place`. Applying the kit update puts the new code in the workbench but changes nothing in AWS; the steps below then apply it.
+**Where the change itself comes from.** You never edit the bucket code by hand. The release that needs the change brings it as new versions of files in `terraform/live/log-archive/logging/` or `terraform/modules/locked-bucket/`, and its guide states what changes in AWS. For example, a release that lets the audit account read the evidence bucket would bring a new bucket policy; its plan would show `aws_s3_bucket_policy` as `will be updated in-place`. Taking the release (Part 1.4, "Taking a later release") puts the new code on your laptop but changes nothing in AWS; the steps below then apply it.
 
 **Procedure**
 
-1. Apply the release's kit update (Part 1.5). The new code is now in the workbench and in Git; nothing has changed in AWS yet. Read the version's entry in `KIT_CHANGES.md` and note what it says will change in AWS: step 10 checks the plan against it.
+1. Take the release that needs the change (Part 1.4, "Taking a later release"). The new code is now on your laptop; nothing has changed in AWS yet. Read what the release's guide says will change in AWS: step 10 checks the plan against it.
 2. Record why the change is needed, before anything is changed in AWS:
    ```bash
    scripts/log_step.sh 9 \
@@ -1554,9 +1527,9 @@ The full set of these tests runs automatically in the Release 1 guide (tests T5 
    ```
 9. Go to the logging stack:
    ```bash
-   cd ~/work/dpdp-on-aws-workbench/terraform/live/log-archive/logging
+   cd ~/work/dpdp-on-aws/terraform/live/log-archive/logging
    ```
-10. Prepare the plan. It must show only the change named in the `KIT_CHANGES.md` entry of step 1, and nothing to destroy. If it shows anything else, stop and run steps 12 to 16 to put the guardrail back before looking into it.
+10. Prepare the plan. It must show only the change named in the release's guide (step 1), and nothing to destroy. If it shows anything else, stop and run steps 12 to 16 to put the guardrail back before looking into it.
    ```bash
    terraform plan -out=log.tfplan
    ```
@@ -1569,7 +1542,7 @@ The full set of these tests runs automatically in the Release 1 guide (tests T5 
     ```
 12. Go back to the organisation stack:
     ```bash
-    cd ~/work/dpdp-on-aws-workbench/terraform/live/management/organization
+    cd ~/work/dpdp-on-aws/terraform/live/management/organization
     ```
 13. Open the variables file again and restore the `security` line. Save and close.
     ```bash
@@ -1589,9 +1562,9 @@ The full set of these tests runs automatically in the Release 1 guide (tests T5 
     ```bash
     ../../../../scripts/log_step.sh 9 "buckets guardrail attached to Security again"
     ```
-16. Return to the workbench folder:
+16. Return to the repository folder:
     ```bash
-    cd ~/work/dpdp-on-aws-workbench
+    cd ~/work/dpdp-on-aws
     ```
 17. Prove the protection is back: run test stage C again, steps 1 to 4. Both attempts must fail with `AccessDenied`, as before.
 18. Save the trail's record of the detach and the re-attach. Changes to the organisation are recorded in US East (N. Virginia). Each command asks the trail for one event by name; a plain list of recent events is not enough, because every Terraform plan adds many read events that push the detach out of view. The trail can take up to 15 minutes to show an event, so run these a little after step 15.
@@ -1612,40 +1585,41 @@ The full set of these tests runs automatically in the Release 1 guide (tests T5 
     ```
     The two times show how long the guardrail was off.
 
-`terraform.tfvars` is not committed; after step 13 it is back as it was before step 4. The code change was committed with the kit update in step 1, so nothing else needs committing.
+`terraform.tfvars` is not committed; after step 13 it is back as it was before step 4. The code change came with the release in step 1, so nothing else needs committing.
 
 **Why the change is itself evidence.** The organisation trail records every step with its time and the identity that took it: the detach (`DetachPolicy`), the change to the bucket (for example `PutBucketPolicy`, recorded in the log archive account), and the re-attach (`AttachPolicy`). Together with the bootstrap log, which gives the reason, an auditor can see that the protection was lifted only for the minutes the change took, by whom and for what purpose, and that it was restored and tested afterwards.
 
 ---
 
-## Part 10. GitHub settings
+## Part 10. Checkpoint, and your own repository
 
-**Why:** The public repository is what readers see and copy. These settings make sure every change arrives through a pull request, carries a signature, cannot erase history, and cannot publish a key by mistake.
+### 10.1 Your own repository on GitHub (optional)
 
-### 10.1 Public repository `dpdp-on-aws`
+**Skip this part if you did not make your own copy in Part 1.4.**
+
+**Why:** If you change the code, these settings make sure every change arrives through a pull request, carries a signature, cannot erase history, and cannot publish a key by mistake. The same checks that run on the public repository then run on yours.
+
+In your repository `dpdp-on-aws` on GitHub:
 
 1. **Settings → General → Pull Requests:** tick only **Allow merge commits**. Untick squash merging and rebase merging. Tick **Automatically delete head branches**.
 2. **Settings → Rules → Rulesets → New branch ruleset:**
    - Name `protect-main`, enforcement **Active**, target branch: **Include default branch**
    - Tick **Restrict deletions**, **Block force pushes**, **Require signed commits**
    - Tick **Require a pull request before merging** with required approvals **0**
-   - Leave **Require status checks to pass** unticked for now. A check can be selected only after it has run once; the Release 1 guide, Step 9, adds it after the first pull request
-3. **Settings → Actions → General:**
-   - **Approval for running fork pull request workflows from contributors:** **Require approval for all external contributors**
-   - **Workflow permissions:** **Read repository contents and packages permissions**
-4. **Settings → Advanced Security:** confirm secret scanning and push protection are on.
+   - Leave **Require status checks to pass** unticked for now. A check can be selected only after it has run once
+3. **Settings → Actions → General → Workflow permissions:** **Read repository contents and packages permissions**.
+4. **Settings → Advanced Security:** switch on secret scanning and push protection if your plan offers them for private repositories. The `gitleaks` check before every commit (Part 1.4, step 6) and in the pull request checks covers the same risk either way.
+5. After your first pull request has run the three checks, make them required: **Settings → Rules → Rulesets → protect-main →** tick **Require status checks to pass** and add `Terraform format, validate and lint`, `Secrets and misconfiguration scan` and `Personal data register and offline tests`. Save.
 
-### 10.2 Private workbench `dpdp-on-aws-workbench`
+GitHub enforces rulesets on private repositories only on some paid plans. On the free plan, the checks before every commit (Part 1.4, step 6) still run the secret scan, the formatting check and the register check on your laptop.
 
-Branch rules are not enforced on private repositories on GitHub's free plan. The pre-commit hooks installed in Part 1.4 run the secret scan, the formatting check and the register check before every commit.
+### 10.2 Checkpoint
 
-### 10.3 Checkpoint
+**Why:** This confirms the platform is complete before the Release 1 guide builds on it. Every check reads the current state from AWS and saves the result in the bootstrap log, so the log shows the platform as it stood on the day the build moved on to Release 1.
 
-**Why:** This confirms the platform is complete before the Release 1 guide builds on it. Every check reads the current state from AWS or GitHub and saves the result in the bootstrap log, so the log shows the platform as it stood on the day the build moved on to Release 1.
-
-Run every step from the workbench folder, signed in:
+Run every step from the repository folder, signed in:
 ```bash
-cd ~/work/dpdp-on-aws-workbench && source .venv/bin/activate
+cd ~/work/dpdp-on-aws && source .venv/bin/activate
 ```
 ```bash
 aws sso login --sso-session dpdp
@@ -1653,7 +1627,7 @@ aws sso login --sso-session dpdp
 
 **1. Accounts in their units.** This is one command over several lines; paste it as it is.
 ```bash
-scripts/log_step.sh 10.3 "Accounts in each unit" -- bash -c '
+scripts/log_step.sh 10.2 "Accounts in each unit" -- bash -c '
 P="--profile dpdp-mgmt-admin --output text"
 R=$(aws organizations list-roots $P --query "Roots[0].Id")
 echo "Root: $(aws organizations list-accounts-for-parent --parent-id $R $P \
@@ -1670,14 +1644,14 @@ It must print four lines, in any order:
 
 | Line | Accounts, in any order |
 |---|---|
-| `Root:` | The management account, your project account, `Identity Delegated Admin` |
+| `Root:` | The management account; at starting point A also your project account and `Identity Delegated Admin` |
 | `Security:` | `dpdp-log-archive`, `dpdp-audit` |
 | `Workloads:` | `dpdp-workload` |
 | `Sandbox:` | `dpdp-sandbox` |
 
 **2. Sign-in only through Identity Center.** The five profiles, as in Part 5.2. Each line must show the right account and an `Arn` with `AWSReservedSSO_`:
 ```bash
-scripts/log_step.sh 10.3 "Five profile checks" -- bash -c \
+scripts/log_step.sh 10.2 "Five profile checks" -- bash -c \
   'for p in dpdp-logarchive-admin dpdp-logarchive-auditor dpdp-workload-eng \
   dpdp-workload-admin dpdp-sandbox-eng; do echo "$p: $(aws sts get-caller-identity \
   --profile $p --query Arn --output text)"; done'
@@ -1685,34 +1659,34 @@ scripts/log_step.sh 10.3 "Five profile checks" -- bash -c \
 
 **3. No IAM users** in the workload and log archive accounts. Both lines must end empty: no user names.
 ```bash
-scripts/log_step.sh 10.3 "No IAM users in workload and log archive" -- bash -c \
+scripts/log_step.sh 10.2 "No IAM users in workload and log archive" -- bash -c \
   'for p in dpdp-workload-admin dpdp-logarchive-admin; do echo "$p: $(aws iam \
   list-users --profile $p --query "Users[].UserName" --output text)"; done'
 ```
 
 **4. Root credentials managed centrally.** It must list `RootCredentialsManagement` and `RootSessions`. That the four member accounts have no root credentials is shown by the screenshot from Part 5.3.
 ```bash
-scripts/log_step.sh 10.3 "Central root access management enabled" -- \
+scripts/log_step.sh 10.2 "Central root access management enabled" -- \
   aws iam list-organizations-features --profile dpdp-mgmt-admin
 ```
 
 **5. Organisation trail running.** It must print `true`:
 ```bash
-scripts/log_step.sh 10.3 "Organisation trail is logging" -- \
+scripts/log_step.sh 10.2 "Organisation trail is logging" -- \
   aws cloudtrail get-trail-status --name dpdp-organization-trail \
   --profile dpdp-mgmt-admin --query IsLogging
 ```
 
 **6. Logs locked for 365 days.** Replace `<log archive id>`. It must show `"Mode": "GOVERNANCE"` and `"Days": 365`:
 ```bash
-scripts/log_step.sh 10.3 "Log bucket lock" -- \
+scripts/log_step.sh 10.2 "Log bucket lock" -- \
   aws s3api get-object-lock-configuration \
   --bucket dpdp-cloudtrail-logs-<log archive id> --profile dpdp-logarchive-admin
 ```
 
 **7. Guardrails attached, read from AWS.** This asks AWS which guardrails are attached to each unit. This is one command over several lines; paste it as it is.
 ```bash
-scripts/log_step.sh 10.3 "Guardrails attached to each unit, read from AWS" -- bash -c '
+scripts/log_step.sh 10.2 "Guardrails attached to each unit, read from AWS" -- bash -c '
 P="--profile dpdp-mgmt-admin --output text"
 R=$(aws organizations list-roots $P --query "Roots[0].Id")
 for ou in $(aws organizations list-organizational-units-for-parent --parent-id $R \
@@ -1737,7 +1711,7 @@ cd terraform/live/management/organization
 ```
 Save the list:
 ```bash
-../../../../scripts/log_step.sh 10.3 "Guardrail attachments in Terraform state" -- \
+../../../../scripts/log_step.sh 10.2 "Guardrail attachments in Terraform state" -- \
   terraform output attached_guardrails
 ```
 It must list these 10 entries, which match step 7 unit by unit:
@@ -1746,9 +1720,9 @@ It must list these 10 entries, which match step 7 unit by unit:
 "security-baseline", "security-buckets", "security-region",
 "workloads-baseline", "workloads-buckets", "workloads-cost", "workloads-region"
 ```
-Return to the workbench folder:
+Return to the repository folder:
 ```bash
-cd ~/work/dpdp-on-aws-workbench
+cd ~/work/dpdp-on-aws
 ```
 
 **9. Budget.** Keep the management account id in `A`:
@@ -1758,38 +1732,85 @@ A=$(aws sts get-caller-identity --profile dpdp-mgmt-admin \
 ```
 It must print `dpdp-monthly`, `18.0` and `USD`:
 ```bash
-scripts/log_step.sh 10.3 "Budget" -- \
+scripts/log_step.sh 10.2 "Budget" -- \
   aws budgets describe-budgets --profile dpdp-mgmt-admin --account-id $A \
   --query "Budgets[].[BudgetName,BudgetLimit.Amount,BudgetLimit.Unit]" --output text
 ```
 
 **10. Anomaly alerts.** It must print your subscription's name and `DAILY`:
 ```bash
-scripts/log_step.sh 10.3 "Cost Anomaly Detection subscription" -- \
+scripts/log_step.sh 10.2 "Cost Anomaly Detection subscription" -- \
   aws ce get-anomaly-subscriptions --region us-east-1 --profile dpdp-mgmt-admin \
   --query "AnomalySubscriptions[].[SubscriptionName,Frequency]" --output text
 ```
 
-**11. GitHub rules on the public repository (console).** Open `dpdp-on-aws` → **Settings** → **Rules** → **Rulesets**. `protect-main` must show **Active**. Open it and check the rules from Part 10.1, step 2. Save the screenshot `10.3-ruleset-protect-main.png` (Part 1.6), and log it:
-```bash
-scripts/log_step.sh 10.3 \
-  "Screenshot 10.3-ruleset-protect-main.png: protect-main Active"
-```
-
-**12. Workbench clean.** It must say `nothing to commit, working tree clean`. If `.terraform.lock.hcl` files are listed, commit them as in Part 8.3 first.
+**11. Code unchanged.** It must say `nothing to commit, working tree clean`, so that the evidence records of the Release 1 tests name a commit that matches the code that ran.
 ```bash
 git status
 ```
 
-**13. Back up the notes:**
+**12. Back up the notes** to your backup folder (Part 1.5).
+
+When all twelve steps give the results described, the platform is complete. Log it, and continue with the **Release 1 Guide, Step 1**.
 ```bash
-cp -r -u notes/. "/mnt/c/Users/<windows user>/OneDrive/dpdp-bootstrap-notes/"
+scripts/log_step.sh 10.2 "Checkpoint complete; platform ready for Release 1"
 ```
 
-When all thirteen steps give the results described, the platform is complete. Log it, and continue with the **Release 1 Build Guide, Step 1**.
-```bash
-scripts/log_step.sh 10.3 "Checkpoint complete; platform ready for Release 1"
-```
+---
+
+## Part 11. Remove what you built
+
+**Why:** When you have finished with the build, these steps stop its charges and remove it. They follow from the design: the logs and evidence are locked so that nobody can erase them early, and the accounts are protected from deletion, so removal is slow on purpose.
+
+**First remove each release you built**, using the removal step at the end of its guide (for Release 1: Release 1 Guide, Step 7). That deletes the model company's data stores and the synthetic customers.
+
+**What removal involves, and how long it takes**
+
+| What | How it is removed | When it is gone |
+|---|---|---|
+| The organisation trail | Deleted from the command line (step 3) | At once; no new logs are written |
+| The four member accounts, with the locked log and evidence buckets in `dpdp-log-archive` | Closed from the management account (steps 4 to 6) | AWS deletes each account's content when its post-closure period ends, normally 90 days. Object Lock does not stop an account from being closed. The locked logs and evidence amount to a few megabytes, so their storage cost until then is negligible |
+| At starting point A: your project account and `Identity Delegated Admin` | Closed the same way, only if you want to delete the whole organisation | As above |
+| The organisation | Deleted when no member account is left in it (step 9) | After the closed accounts have left, about 90 days after closure |
+| The management account | Closed after the organisation is deleted (step 10) | AWS deletes its content after its own post-closure period |
+
+The locked buckets cannot be emptied before closure. The evidence in compliance mode cannot be deleted by anyone until its retention ends, and the `buckets` guardrail refuses any attempt on the logs. Closing the account is the intended way out.
+
+**If you only want to pause.** Removing Release 1 (its Step 7) and leaving the platform in place keeps the cost close to zero: the platform runs no servers. The budget alerts stay active.
+
+**Steps**
+
+1. Sign in:
+   ```bash
+   aws sso login --sso-session dpdp
+   ```
+2. Record the decision:
+   ```bash
+   scripts/log_step.sh 11 "Decision: remove the build; member accounts to be closed"
+   ```
+3. Delete the organisation trail. Terraform cannot do this, because the trail is protected from deletion in its code; the management account can, because guardrails never apply to it.
+   ```bash
+   scripts/log_step.sh 11 "Organisation trail deleted" -- \
+     aws cloudtrail delete-trail --name dpdp-organization-trail \
+     --profile dpdp-mgmt-admin
+   ```
+4. Print the member accounts with their ids, and keep the list on screen for step 5:
+   ```bash
+   scripts/log_step.sh 11 "Member accounts before closure" -- \
+     aws organizations list-accounts --profile dpdp-mgmt-admin \
+     --query "Accounts[].[Name,Id,Status]" --output table
+   ```
+5. **Console**, signed in through the access portal with `BreakGlassAdmin` on the management account: **AWS Organizations** → **AWS accounts**. For each of `dpdp-log-archive`, `dpdp-audit`, `dpdp-workload` and `dpdp-sandbox`: select it → **Close** → read the notice, tick each box, type the account id when asked → **Close account**. At starting point A, close your project account and `Identity Delegated Admin` the same way if you want to delete the organisation. AWS limits how many member accounts can be closed in 30 days; these few are within the limit.
+6. Check their status. Each closed account must show `SUSPENDED`:
+   ```bash
+   scripts/log_step.sh 11 "Member accounts after closure" -- \
+     aws organizations list-accounts --profile dpdp-mgmt-admin \
+     --query "Accounts[].[Name,Status]" --output table
+   ```
+7. Remove the budget and anomaly alerts **after** the last bill has arrived, so that any charge still to come is reported. Until then, leave them.
+8. On the laptop, remove the profiles of the closed accounts from `~/.aws/config` with `nano ~/.aws/config`. Keep the bootstrap log and its backup: they are the record of what was built, tested and removed.
+9. **About 90 days later**, when **AWS Organizations** → **AWS accounts** lists only the management account, delete the organisation: **AWS Organizations** → **Settings** → **Delete organization**. If AWS asks you to remove IAM Identity Center first, delete its instance under **IAM Identity Center** → **Settings** → **Delete**, then delete the organisation.
+10. Close the management account: sign in as its root user → account menu → **Account** → **Close account**.
 
 ---
 
@@ -1798,25 +1819,23 @@ scripts/log_step.sh 10.3 "Checkpoint complete; platform ready for Release 1"
 | Symptom | Cause and fix |
 |---|---|
 | `Token has expired` or `SSO session ... expired` | Run `aws sso login --sso-session dpdp` again |
-| The **Secrets and misconfiguration scan** check fails within seconds, with `unable to find version 0.28.0` | The workbench has a `checks.yml` from before the kit update of 22 October 2026 (third update). The old trivy-action tags were taken over by an attacker in March 2026 and then deleted. Apply that kit update (Part 1.5) |
-| The **Secrets** step of that check fails with `Resource not accessible by integration` (HTTP 403) | gitleaks may not read the pull request. The same kit update adds `pull-requests: read` to the job (Part 1.5) |
-| `git status` lists `.terraform.lock.hcl` files | Expected after `terraform init`. They are committed in Part 8.3, or with a kit update (Part 1.5, step 4) |
 | `pip install` times out, or the connection is reset, while downloading from `files.pythonhosted.org` | The internet connection cannot reach Python's download server. Try once with `pip install --no-cache-dir --timeout 120 -r requirements.txt`. If it fails again, download the package file over another connection, such as a phone hotspot, and install it with `pip install <file>.whl` |
+| `git status` shows a `.terraform.lock.hcl` file as modified after `terraform init` on macOS or another platform | Terraform added the checksum for your platform to the lock file. The provider version is unchanged. Keep the change, or restore the file with `git checkout <file>` after the run |
 | A step fails with "account verification is in progress" | AWS has not finished verifying the new account. It can take up to two days. Wait, then retry the step |
-| IAM Identity Center console shows no instance | The console is in the wrong region. Switch to the Primary Region (normally US East, N. Virginia) |
+| IAM Identity Center console shows no instance | The console is in the wrong region. Switch to the Identity Center region (Part 3.3, step 1) |
 | `aws sso login` fails with an invalid start URL or region | `sso_start_url` and `sso_region` in `~/.aws/config` must match IAM Identity Center → Settings (Part 3.3) |
 | `aws sso login` reports "Identity Center instance that does not exist or does not exist in this region" | `sso_start_url` holds the IPv4-only portal link. Replace it with the Dual-stack link, ending in `.app.aws` (Part 3.5, step 5) |
 | `aws sso login` prints `gio: ... Operation not supported` | Ubuntu in WSL cannot open the Windows browser. Copy the printed link into the Windows browser (Part 3.5, step 6), or install `wslu` as shown there |
-| Your user is not in the Users tab when assigning access | Your Builder ID is not yet a user of the instance. In IAM Identity Center → Users, invite your Builder ID email, accept the invitation, then assign again |
+| Starting point A: your user is not in the Users tab when assigning access | Your Builder ID is not yet a user of the instance. In IAM Identity Center → Users, invite your Builder ID email, accept the invitation, then assign again |
+| Starting point B: the invitation email did not arrive, or expired | IAM Identity Center → **Users** → your user → **Send email verification link** or **Reset password**. Check the spam folder |
 | IAM Identity Center has no **Multi-account permissions** section in the left menu | Multi-account permissions are switched off. Part 3.4, first block: Settings → Management → Enable |
 | Any action in a DPDP account in Mumbai is refused by a service control policy that is not one of the four in this guide | An AWS guardrail with `RegionFloor` is attached to Root. Go back to Part 3.2 |
 | `terraform init`: bucket does not exist | Run `scripts/bootstrap_state_bucket.sh` for that account's profile and copy the printed lines into `backend.hcl` |
 | Plan wants to destroy the organisation or an account | Stop. Check `organization_id` in `terraform.tfvars` and that you are in the right folder. `prevent_destroy` blocks the apply in any case |
-| `ConstraintViolationException: You have exceeded the allowed number of AWS accounts` | A new organisation can start with an account limit below AWS's usual 10, and the organisation already holds three accounts. In the management account, region **US East (N. Virginia)**: **Service Quotas** → **AWS services** → **AWS Organizations** → **Default maximum number of accounts** → **Request increase at account level**, value **10**. This opens a request to AWS. When it is approved, run Part 4.2 steps 7 and 8 again: the plan then shows only the 4 accounts still to be created |
+| `ConstraintViolationException: You have exceeded the allowed number of AWS accounts` | A new organisation can start with an account limit below AWS's usual 10. In the management account, region **US East (N. Virginia)**: **Service Quotas** → **AWS services** → **AWS Organizations** → **Default maximum number of accounts** → **Request increase at account level**, value **10**. This opens a request to AWS, which can take a few days. When it is approved, run Part 4.2 steps 7 and 8 again: the plan then shows only the accounts still to be created |
 | Account creation still in progress after 30 minutes | Check the account emails for verification messages; wait up to an hour |
 | `AccessDenied` when changing a protected bucket after stage C | Expected. Use Part 9, "Changing a protected bucket later" |
 | Region test succeeds in stage A | The `region` guardrail is not attached to the unit that holds the account. Check `terraform output attached_guardrails` |
-| A pull request check fails on formatting | Run `terraform fmt -recursive terraform` and commit |
+| A pull request check fails on formatting (your own repository) | Run `terraform fmt -recursive terraform` and commit |
 | The budget page shows USD | AWS Budgets is set in US dollars; USD 18 is about INR 1,500 |
-| `git clone` or `git push` asks for a password | The access key from Part 1.3, steps 12 to 15, is missing or not added to GitHub as an **Authentication key** |
-| `unzip: cannot find` the starter kit | Check the Windows path in Part 1.4, step 4. In Ubuntu, Windows drives are under `/mnt/c` |
+| `git push` asks for a password (your own repository) | The access key from Part 1.3, steps 12 to 15, is missing or not added to GitHub as an **Authentication key**, or `origin` points to an `https://` address. Check with `git remote -v` |

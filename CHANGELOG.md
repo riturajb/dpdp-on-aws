@@ -4,7 +4,7 @@ Every release of DPDP on AWS is listed here, newest first. Each entry states wha
 
 ---
 
-## v0.2.0 · Release 1: Foundations, and know what you hold · <day month year>
+## v0.2.0 · Release 1: Foundations, and know what you hold · 25 October 2026
 
 ### Added
 
@@ -30,6 +30,13 @@ Every release of DPDP on AWS is listed here, newest first. Each entry states wha
 ### Security
 
 - Third-party GitHub Actions are pinned to full commit identifiers, not version tags. The version tags of `aquasecurity/trivy-action` were taken over by an attacker in March 2026 and later deleted; the scan now uses v0.35.0 by commit identifier.
+
+### Changed (26 October 2026)
+
+- Setup Guide and Release 1 Guide rewritten for readers building in their own AWS account. Added: a "Before you start" section on account choice, cost, Free plan credits and what cannot be removed quickly; steps for starting from a standard AWS account, where Part 3.0 creates the organisation and IAM Identity Center in Mumbai; the code is now taken with `git clone`; removal steps for Release 1 (Release 1 Guide, Step 7) and for the whole build (Setup Guide, Part 11). Removed: steps that applied only to the author's own publishing.
+- Removed the demonstration script and tool (`scripts/demo_release1.sh`, `tools/demo_release1.py`, `tools/assets/`) and the Pillow package they needed. They produced the author's announcement video and are not needed to run or test the release.
+- README: how to run the release, cost and removal, and the IAM Identity Center limitation updated to match the guides.
+- Comments in `config/local.env.example`, `notes/bootstrap-log.template.md`, `scripts/log_step.sh`, `tools/customer_summary.py` and two Terraform files updated to match the guides. Nothing the code does has changed, and no Terraform plan changes.
 
 ---
 

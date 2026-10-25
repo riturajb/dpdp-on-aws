@@ -68,16 +68,17 @@ Section 16 does not require personal data to stay in India; it allows the Centra
 | [`terraform/`](terraform/) | The AWS organisation, its accounts and staged guardrails; the organisation trail; locked log and evidence buckets; account baselines; the model company's data stores; budget alerts |
 | [`tools/`](tools/) | The register check, the customer summary, the synthetic data generator and the evidence recorder |
 | [`tests/`](tests/) | Fourteen tests. Three run offline on every pull request; eleven run live against AWS |
-| [`scripts/`](scripts/) | State bucket set-up, the bootstrap log helper and the demonstration |
+| [`scripts/`](scripts/) | State bucket set-up and the bootstrap log helper |
 | [`docs/`](docs/) | The setup guide, the Release 1 guide and the project standards |
 | [`.github/workflows/`](.github/workflows/) | Checks on every pull request: Terraform format, validation and lint; secret and misconfiguration scans; the register check and offline tests |
 
 ### How to run it
 
-1. Build the platform with the [AWS and GitHub Setup Guide](docs/SETUP_GUIDE.md): the AWS organisation, sign-in, guardrails, logging, evidence storage, cost alerts and GitHub settings.
-2. Build the release with the [Release 1 Guide](docs/RELEASE_1_GUIDE.md): the model company, the synthetic customers, the register, the tests and the demonstration.
+1. Read **Before you start** in the [Setup Guide](docs/SETUP_GUIDE.md). Use a new AWS account created only for this build: it creates an AWS organisation, and logs and evidence that stay locked after you finish.
+2. Build the platform with the [Setup Guide](docs/SETUP_GUIDE.md): the AWS organisation, sign-in, guardrails, logging, evidence storage and cost alerts.
+3. Build the release with the [Release 1 Guide](docs/RELEASE_1_GUIDE.md): the model company, the synthetic customers, the register and the tests.
 
-Both guides give numbered steps, the result to expect after each step, and what to do if it differs.
+Both guides give numbered steps, the result to expect after each step, and what to do if it differs. They work from a standard AWS account or from an account created with AWS's newer sign-up.
 
 ### How it is tested, and where the evidence is kept
 
@@ -85,14 +86,14 @@ Each test attempts something the law requires to be true, or requires to be impo
 
 ### Cost and removal
 
-The build is designed to stay within a budget of USD 18 a month for the whole organisation (about INR 1,500), with alerts at one third, two thirds and the full amount. A guardrail blocks services with high fixed monthly charges. The model company's stores can be removed with `terraform destroy`. The log and evidence buckets are locked by design: they cannot be deleted until the retention of their contents ends.
+The build is designed to stay within a budget of USD 18 a month for the whole organisation (about INR 1,500), with alerts at one third, two thirds and the full amount. A guardrail blocks services with high fixed monthly charges. The model company's stores are removed in the last step of the [Release 1 Guide](docs/RELEASE_1_GUIDE.md). The log and evidence buckets are locked by design: they cannot be emptied early, and they are removed by closing the accounts, which AWS completes after 90 days. The [Setup Guide](docs/SETUP_GUIDE.md), Part 11, gives the steps.
 
 ### Limitations
 
 - No notice or consent yet. They arrive in Release 4.
 - Changes are applied from a laptop. The approval-gated pipeline arrives in Release 2.
 - Guardrails do not apply to the AWS management account; that is how AWS Organizations works. The management account holds no workloads, is protected by multi-factor authentication, and any attempt to stop the trail is recorded.
-- IAM Identity Center runs in US East (N. Virginia), where AWS's sign-up flow created it, and AWS cannot move it. Sign-in records are held there; all personal data stays in Mumbai.
+- IAM Identity Center runs in one region that AWS cannot change later: US East (N. Virginia) for an organisation created through AWS's newer sign-up, or Mumbai when it is enabled as in the Setup Guide, Part 3.0. All personal data stays in Mumbai.
 - One person holds every role. In a real organisation, a second person would approve changes.
 - The retention periods for KYC, lending and wallet records are placeholders until confirmed against the anti-money-laundering record rules and the Reserve Bank of India's directions.
 - Vendors are entries in the register; no data is sent to any real vendor.

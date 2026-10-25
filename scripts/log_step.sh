@@ -16,9 +16,9 @@
 # notes/bootstrap-log.md. A command that fails is still logged, with its exit code: for the
 # guardrail tests, the refusal is the expected result.
 # Git ignores notes/bootstrap-log.md, notes/outputs/ and notes/screenshots/, because they contain
-# account ids (setup guide, Part 1.6).
+# account ids (setup guide, Part 1.5).
 set -uo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # the workbench folder
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # the repository folder
 
 if [ $# -lt 2 ]; then
   sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
