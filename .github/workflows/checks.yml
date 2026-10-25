@@ -1,0 +1,95 @@
+# Checks on every pull request and on main. No AWS credentials are used here.
+#
+# Three jobs run side by side. A pull request can be merged only when all three pass:
+#   terraform - the infrastructure code is formatted, valid and free of common mistakes
+#   security  - no secret is committed, and no critical misconfiguration is in the code
+#   register  - the personal data register is complete, and the offline tests pass
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# The checks only read the repository; they cannot change it.
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: Terraform format, validate and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.x"
+      # Fails if any .tf file is not in Terraform's standard layout.
+      - name: Format
+        run: terraform fmt -check -recursive terraform
+      # Each folder under terraform/live is one stack. "validate" checks its syntax and
+      # references without contacting AWS (-backend=false).
+      - name: Validate every stack
+        run: |
+          for d in terraform/live/*/*; do
+            echo "::group::$d"
+            terraform -chdir="$d" init -backend=false -input=false > /dev/null
+            terraform -chdir="$d" validate
+            echo "::endgroup::"
+          done
+      # tflint finds mistakes that "validate" does not, such as unused variables.
+      - uses: terraform-linters/setup-tflint@v4
+      - name: Lint
+        run: |
+          tflint --init --config "$GITHUB_WORKSPACE/.tflint.hcl"
+          tflint --recursive --config "$GITHUB_WORKSPACE/.tflint.hcl"
+
+  security:
+    name: Secrets and misconfiguration scan
+    # gitleaks reads the list of commits in the pull request, which needs this permission.
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    steps:
+      # The full history is fetched so that gitleaks also scans earlier commits.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Fails if a key, password or token appears anywhere in the repository.
+      - name: Secrets (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # trivy reads the Terraform code for insecure settings, such as a public bucket.
+      # CRITICAL findings fail the check; HIGH and MEDIUM are listed for review only.
+      - name: Misconfiguration, blocking on CRITICAL (trivy)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: config
+          scan-ref: terraform
+          severity: CRITICAL
+          exit-code: "1"
+      - name: Misconfiguration, report of HIGH and MEDIUM for review (trivy)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: config
+          scan-ref: terraform
+          severity: HIGH,MEDIUM
+          exit-code: "0"
+
+  register:
+    name: Personal data register and offline tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      # Same check as before every commit on the laptop (see .pre-commit-config.yaml).
+      - name: Register check (Section 4, Section 8(2), Rule 8(3))
+        run: python tools/register_check.py
+      # Runs the offline tests. Live tests need AWS sign-in, so they are skipped here.
+      - name: Offline tests
+        run: python -m pytest
