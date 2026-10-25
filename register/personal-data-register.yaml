@@ -1,0 +1,233 @@
+# Personal data register of Fernleaf Finance (fictional), the model lending and wallet company.
+# All data is synthetic.
+#
+# One entry per category of personal data: where it is stored, why it is processed,
+# the legal basis, who receives it, and how long it is kept.
+#
+# Every later release reads this file: notices (Release 4), retention (Release 7),
+# breach response (Release 9), access requests (Release 10) and vendors (Release 11).
+#
+# Legal bases are the model company's own recorded decisions. A real company records
+# its own decision and the reasoning for each.
+#
+# Allowed legal_basis values:
+#   consent                     Section 6
+#   "s7(a)" ... "s7(i)"         Section 7, the clause named
+
+schema_version: 1
+company: Fernleaf Finance (fictional lending and wallet company)
+region: ap-south-1
+
+stores:
+  - id: customers-db
+    type: dynamodb_table
+    name: dpdp-customers
+  - id: loans-db
+    type: dynamodb_table
+    name: dpdp-loans
+  - id: wallet-db
+    type: dynamodb_table
+    name: dpdp-wallet-transactions
+  - id: tickets-db
+    type: dynamodb_table
+    name: dpdp-support-tickets
+  - id: bureau-reports
+    type: s3_bucket
+    name: dpdp-bureau-reports-{account_id}
+  - id: app-events
+    type: s3_bucket
+    name: dpdp-app-events-{account_id}
+
+vendors:
+  - id: kyc-provider
+    name: KYC verification provider
+    role: Data Processor
+    location: India
+    contract_clause: "KYC services agreement 2026, clause 9 (security safeguards)"
+  - id: credit-bureau
+    name: Credit information company
+    role: Data Fiduciary receiving data under its own licence
+    location: India
+    contract_clause: "Credit information membership agreement, clause 12"
+  - id: payment-gateway
+    name: Payment gateway
+    role: Data Processor
+    location: India
+    contract_clause: "Payment services agreement 2026, clause 7"
+  - id: sms-whatsapp-provider
+    name: SMS and WhatsApp messaging provider
+    role: Data Processor
+    location: India
+    contract_clause: "Messaging services agreement 2026, clause 8"
+  - id: collections-call-centre
+    name: Outsourced collections call centre
+    role: Data Processor
+    location: India
+    contract_clause: "Collections services agreement 2026, clause 11"
+  - id: email-provider
+    name: Email delivery service
+    role: Data Processor
+    location: Ireland
+    contract_clause: "Email services agreement 2026, clause 6"
+
+data_categories:
+  - id: identity-kyc
+    name: Identity and KYC
+    notice_description: Your name, date of birth, Aadhaar number and PAN
+    fields: [full_name, date_of_birth, aadhaar_number, pan]
+    stores: [customers-db]
+    purposes:
+      - purpose: Verify your identity before opening a wallet or giving a loan
+        legal_basis: consent
+        shared_with: [kyc-provider]
+    retention:
+      rule: after_account_closure
+      days: 1826
+      legal_reason: Record keeping under the anti-money-laundering record rules and RBI KYC directions
+      confirmed: false
+    children: false
+
+  - id: contact
+    name: Contact details
+    notice_description: Your mobile number, email address and postal address
+    fields: [mobile, email, address]
+    stores: [customers-db]
+    purposes:
+      - purpose: Send messages about your account, wallet and loans
+        legal_basis: consent
+        shared_with: [sms-whatsapp-provider, email-provider]
+    retention:
+      rule: after_account_closure
+      days: 365
+      legal_reason: Rule 8(3), at least one year from the last processing
+      confirmed: true
+    children: false
+
+  - id: marketing-preferences
+    name: Marketing preferences
+    notice_description: Whether you agreed to receive offers, and through which channel
+    fields: [marketing_opt_in]
+    stores: [customers-db]
+    purposes:
+      - purpose: Send you offers for loans and wallet services
+        legal_basis: consent
+        shared_with: [sms-whatsapp-provider]
+    retention:
+      rule: until_withdrawn
+      legal_reason: Section 8(7), erase when consent is withdrawn
+      confirmed: true
+    children: false
+
+  - id: teen-wallet
+    name: Teen wallet account
+    notice_description: Your child's name and date of birth, and the link to your account as parent
+    fields: [parent_customer_id]
+    stores: [customers-db]
+    purposes:
+      - purpose: Run a prepaid wallet for a child under a parent's supervision
+        legal_basis: consent
+        shared_with: [payment-gateway]
+    retention:
+      rule: after_account_closure
+      days: 365
+      legal_reason: Rule 8(3), at least one year from the last processing
+      confirmed: true
+    children: true
+
+  - id: loan-application
+    name: Loan application
+    notice_description: The loan amount you asked for, your income and your employer
+    fields: [amount, income, employer, status, disbursed_on]
+    stores: [loans-db]
+    purposes:
+      - purpose: Assess your loan application and service the loan
+        legal_basis: consent
+        shared_with: [credit-bureau]
+    retention:
+      rule: after_account_closure
+      days: 1826
+      legal_reason: Lending records kept under RBI directions
+      confirmed: false
+    children: false
+
+  - id: repayments-collections
+    name: Repayments and collections
+    notice_description: Your repayments, any overdue amounts and calls about them
+    fields: [repayments, days_overdue, collection_calls]
+    stores: [loans-db]
+    purposes:
+      - purpose: Collect repayments that are due
+        legal_basis: consent
+        shared_with: [collections-call-centre, sms-whatsapp-provider]
+    retention:
+      rule: after_account_closure
+      days: 1826
+      legal_reason: Lending records kept under RBI directions
+      confirmed: false
+    children: false
+
+  - id: credit-bureau-report
+    name: Credit bureau report
+    notice_description: Your credit score and credit history from a credit information company
+    fields: [score, accounts, pulled_on]
+    stores: [bureau-reports]
+    purposes:
+      - purpose: Assess whether you can repay a loan
+        legal_basis: consent
+        shared_with: [credit-bureau]
+    retention:
+      rule: after_account_closure
+      days: 1826
+      legal_reason: Lending records kept under RBI directions
+      confirmed: false
+    children: false
+
+  - id: wallet-transactions
+    name: Wallet transactions
+    notice_description: Payments made from your wallet, the merchant and the time
+    fields: [amount, merchant, txn_time]
+    stores: [wallet-db]
+    purposes:
+      - purpose: Run your prepaid wallet and process payments
+        legal_basis: consent
+        shared_with: [payment-gateway]
+    retention:
+      rule: after_account_closure
+      days: 1826
+      legal_reason: Payment records kept under RBI directions on prepaid payment instruments
+      confirmed: false
+    children: false
+
+  - id: app-events
+    name: App and device activity
+    notice_description: Screens you open in the app, your device identifier and IP address
+    fields: [event_time, event, device_id, ip]
+    stores: [app-events]
+    purposes:
+      - purpose: Detect fraud and unauthorised access to your account
+        legal_basis: consent
+        shared_with: []
+    retention:
+      rule: after_record
+      days: 365
+      date_field: event_time
+      legal_reason: Rule 6(1)(e) and Rule 8(3), one year
+      confirmed: true
+    children: false
+
+  - id: support-tickets
+    name: Complaints and support requests
+    notice_description: What you tell us when you raise a complaint or a support request
+    fields: [channel, text, created_at]
+    stores: [tickets-db]
+    purposes:
+      - purpose: Resolve your complaint or request
+        legal_basis: "s7(a)"
+        shared_with: [email-provider]
+    retention:
+      rule: after_record
+      days: 365
+      date_field: created_at
+      legal_reason: Rule 8(3), at least one year from the last processing
+      confirmed: true
+    children: false
