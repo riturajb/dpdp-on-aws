@@ -1,0 +1,51 @@
+# Add to ~/.aws/config (on your laptop, never in Git). Replace the start URL and account ids.
+
+# sso_start_url and sso_region come from IAM Identity Center -> Settings: the AWS access portal
+# URL (Dual-stack, ending in .app.aws) and the Primary Region of the instance. The IPv4-only
+# portal link is not accepted as a start URL. The profiles' region stays ap-south-1.
+[sso-session dpdp]
+sso_start_url = https://ssoins-XXXXXXXXXXXXXXXX.portal.us-east-1.app.aws
+sso_region = us-east-1
+sso_registration_scopes = sso:account:access
+
+[profile dpdp-mgmt-admin]
+sso_session = dpdp
+sso_account_id = 111111111111
+sso_role_name = BreakGlassAdmin
+region = ap-south-1
+output = json
+
+[profile dpdp-logarchive-admin]
+sso_session = dpdp
+sso_account_id = 222222222222
+sso_role_name = BreakGlassAdmin
+region = ap-south-1
+output = json
+
+[profile dpdp-logarchive-auditor]
+sso_session = dpdp
+sso_account_id = 222222222222
+sso_role_name = Auditor
+region = ap-south-1
+output = json
+
+[profile dpdp-workload-eng]
+sso_session = dpdp
+sso_account_id = 333333333333
+sso_role_name = PlatformEngineer
+region = ap-south-1
+output = json
+
+[profile dpdp-workload-admin]
+sso_session = dpdp
+sso_account_id = 333333333333
+sso_role_name = BreakGlassAdmin
+region = ap-south-1
+output = json
+
+[profile dpdp-sandbox-eng]
+sso_session = dpdp
+sso_account_id = 444444444444
+sso_role_name = PlatformEngineer
+region = ap-south-1
+output = json

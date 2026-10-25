@@ -1,0 +1,5 @@
+management_account_id = "111111111111"
+organization_id       = "o-xxxxxxxxxx"
+workload_account_id   = "333333333333"
+sandbox_account_id    = "444444444444"
+# live_evidence_retention_days = 30

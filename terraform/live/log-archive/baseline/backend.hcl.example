@@ -1,0 +1,4 @@
+# Copy to backend.hcl (ignored by Git) and set the state bucket created by
+# scripts/bootstrap_state_bucket.sh for this account.
+bucket  = "dpdp-tfstate-123456789012"
+profile = "dpdp-logarchive-admin"

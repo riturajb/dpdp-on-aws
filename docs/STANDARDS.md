@@ -28,30 +28,35 @@ Where a control meets more than one provision, the main provision is listed firs
 
 ## 3. Commit messages
 
-Every change is recorded in this format:
+Every change is recorded in this format: a short title, a blank line, one or two sentences on what changed and why, a blank line, then the trailers. Git and GitHub read the trailers as structured data, so commits can be listed by control.
 
 ```
 <Short title of the change>
 
-Control:     <control identifier, or "None">
-Change:      <what was changed, in one or two sentences>
-Reason:      <why it was changed>
-Tested by:   <name of the test, or "Not applicable">
-Approved by: <name>
+<What was changed and why, in one or two sentences.>
+
+Control: <control identifier, several separated by commas, or "None">
+Release: <release number>
+Tested-by: <test file, or "Not applicable">
+Approved-by: <name>
 ```
 
 Example:
 
 ```
-Block log groups kept for less than one year
+Foundations: Keep logs for one year in a locked bucket
 
-Control:     DPDP-Rule-6(1)(e)
-Change:      Added a pre-release check that rejects any CloudWatch log group
-             with a retention period shorter than 365 days.
-Reason:      Rule 6(1)(e) requires logs to be retained for at least one year.
-Tested by:   tests/prevent/test_log_retention.py
-Approved by: Rituraj
+The organisation trail writes to a bucket with Object Lock in governance
+mode and a default retention of 365 days. Evidence buckets use
+compliance mode for live results and governance mode for the sandbox.
+
+Control: DPDP-Rule-6(1)(e)
+Release: 1
+Tested-by: tests/foundations/test_t5_logs_cannot_be_erased.py
+Approved-by: Rituraj
 ```
+
+Every commit is signed, and every change reaches `main` through a pull request with a merge commit.
 
 ---
 
@@ -71,15 +76,16 @@ Evidence stored:  <location of the result>
 
 ## 5. Results and evidence
 
-Every test result will include:
+Every test writes one evidence record with:
 
-- the control identifier
+- the control identifier and the name of the test
 - the date and time of the test (IST)
-- a one-sentence summary, for example: *"On 13 October 2026 at 10:30 IST, all 14 log groups were checked; all were retained for 365 days or more. Result: Pass."*
-- the version of the script that produced it (the Git commit reference)
-- a SHA-256 checksum of the result file
+- what was attempted, and the response received from AWS
+- the outcome: pass or fail
+- the version of the code that ran the test (the Git commit reference)
+- a SHA-256 checksum of the record
 
-Results will be stored in a storage location that prevents alteration or deletion for a fixed period. An auditor will be able to rerun any test and compare the outcome with the stored result.
+Live results are stored in an S3 bucket with Object Lock in compliance mode, which prevents alteration or deletion until the retention date. An auditor can read a record with read-only access, confirm its lock, recompute its checksum, and rerun the test to compare the outcome with the stored result.
 
 ---
 
