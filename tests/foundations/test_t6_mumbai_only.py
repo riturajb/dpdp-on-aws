@@ -6,6 +6,10 @@ What is checked:  Signed in as PlatformEngineer of the target account, try to cr
 Pass means:       The request is refused by the organisation's guardrail.
 Fail means:       Data could be stored outside India by mistake.
 Evidence stored:  The evidence bucket for the target account.
+Who runs it:      The author or reader, with an engineer profile: pytest --live
+When:             Release 1, Step 6; Release 2, Step 6; the clean-room run.
+Changes AWS:      It tries to create a bucket in Singapore, which must be refused.
+                  Writes one evidence record.
 """
 import uuid
 

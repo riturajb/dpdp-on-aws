@@ -6,6 +6,11 @@ This is the basis of the summary a company must give on request under Section 11
   python tools/customer_summary.py --customer C-TEST-0001 --profile dpdp-workload-eng
   python tools/customer_summary.py --customer C-TEST-0001 --offline data/     # from generated files
   add --brief for one line per category
+
+Who runs it: The person answering a customer's request; in this project, an engineer profile.
+When:        Release 1, Step 5; whenever a customer asks what the company holds about her.
+Reads:       The register and the customer's records.   Writes: nothing.
+Changes AWS: No.
 """
 from __future__ import annotations
 

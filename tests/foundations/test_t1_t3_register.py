@@ -6,6 +6,9 @@ What is checked:  Every category of personal data has a purpose, a legal basis, 
 Pass means:       The register passes; a copy with a flow that has no legal basis fails.
 Fail means:       Personal data could be used without a recorded purpose or legal basis.
 Evidence stored:  Locally in evidence/ (offline test, also run in GitHub Actions).
+Who runs it:      Anyone, with no AWS access; also GitHub Actions on every pull request.
+When:             Release 1, Step 6; after every change to the register.
+Changes AWS:      No.
 """
 from pathlib import Path
 

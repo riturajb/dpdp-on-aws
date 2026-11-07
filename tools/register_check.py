@@ -6,6 +6,14 @@
                                                          # also compare with the account
 
 Exit code 0 = no FAIL. Exit code 1 = at least one FAIL.
+
+Why:         DPDP Act, section 4 (a lawful purpose and basis for each use of personal data) and
+             section 8(1) (the company knows what it holds). The register is the record of both.
+Who runs it: Anyone, offline. With --live: an engineer profile; it reads tags only.
+             GitHub Actions runs the offline check on every pull request.
+When:        Release 1, Steps 3 and 4; after every change to the register.
+Reads:       The register; with --live, the resource tags in the account.   Writes: nothing.
+Changes AWS: No.
 """
 from __future__ import annotations
 

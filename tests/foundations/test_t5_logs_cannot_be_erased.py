@@ -7,6 +7,10 @@ What is checked:  Signed in as BreakGlassAdmin of the log archive account, try t
 Pass means:       Every attempt is refused, and no delete marker is created.
 Fail means:       An administrator could erase or weaken the access logs.
 Evidence stored:  The evidence bucket, folder dpdp-log-archive.
+Who runs it:      The author or reader: pytest --live (uses the log archive profile).
+When:             Release 1, Step 6; Release 2, Step 6; the clean-room run.
+Changes AWS:      It tries to change the log archive; every attempt must be refused.
+                  Writes one evidence record.
 """
 import pytest
 

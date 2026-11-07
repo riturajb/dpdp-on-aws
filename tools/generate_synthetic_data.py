@@ -12,6 +12,13 @@ Nothing here is real:
   python tools/generate_synthetic_data.py --out data/            # write JSON files only
   python tools/generate_synthetic_data.py --out data/ --load --profile dpdp-workload-eng
                                                                  # also load into the account
+
+Who runs it: An engineer (PlatformEngineer, profile dpdp-workload-eng) when loading; anyone for
+             --out only.
+When:        Release 1, Step 2; again in each clean-room run.
+Writes:      JSON files in data/ (ignored by Git); with --load, items and objects in the account.
+Changes AWS: With --load only: fills the tables and buckets created in Release 1, Step 1.
+             Undo: terraform destroy of the model company (Release 1, Step 7).
 """
 from __future__ import annotations
 

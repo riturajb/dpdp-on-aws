@@ -2,6 +2,10 @@
 
 The synthetic data deliberately uses numbers that FAIL this check, so that no
 generated number can be a real, issued Aadhaar number.
+
+Who runs it: Nobody directly. A library used by generate_synthetic_data.py and detectors.py.
+When:        Release 1 onwards.
+Changes AWS: No.
 """
 
 _D = [

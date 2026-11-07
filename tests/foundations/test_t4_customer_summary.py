@@ -7,6 +7,9 @@ Pass means:       All nine categories expected for an adult borrower appear, wit
                   and Aadhaar and PAN are masked.
 Fail means:       The company cannot say what it holds about a person.
 Evidence stored:  Locally (offline) or the evidence bucket (live).
+Who runs it:      Anyone offline; with --live, an engineer profile.
+When:             Release 1, Step 6; Release 2, Step 6; the clean-room run.
+Changes AWS:      Live only: writes one evidence record.
 """
 import pytest
 
