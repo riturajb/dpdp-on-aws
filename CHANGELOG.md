@@ -4,6 +4,26 @@ Every release of DPDP on AWS is listed here, newest first. Each entry states wha
 
 ---
 
+## v0.3.0 · Release 2: Find · 7 November 2026
+
+### Added
+
+- **Personal data scanner** (`tools/discover.py`): reads every S3 bucket, DynamoDB table and CloudWatch Logs log group in the account, tagged or not, and compares every finding with the register. Each finding gets a verdict: expected, unexpected category or unregistered store. Reports hold masked values only, and no hashes of identifiers.
+- **Detectors** (`tools/detectors.py`) for Aadhaar numbers, PANs, mobile numbers and email addresses, with two confidence levels: high when a value passes every validity check (the Verhoeff check digit for Aadhaar, the holder type for PAN), medium when it has the right format but fails a check.
+- **Three planted problems, a fire drill** (`tools/plant_findings.py`), all synthetic: an Aadhaar number in support ticket notes, a marketing export in an untagged bucket, and PAN and mobile numbers in a debug log. The same script removes them.
+- **Four tests** (T8 offline; T9 to T11 live), with evidence records. Eighteen tests in total.
+- **Read-only access for the scanner**: the profile `dpdp-workload-auditor` (permission set `Auditor`) and the setting `DPDP_PROFILE_AUDITOR`.
+- **Release 2 Guide** (`docs/RELEASE_2_GUIDE.md`), including "Beyond the code" (decisions, owners, the quarterly discovery procedure, evidence, effort, and discovery outside AWS) and how a company would run the scan.
+- **Discovery plan template** (`templates/discovery-plan.xlsx`).
+
+### Changed
+
+- Every script and test opens with a header: what it does, why, who runs it, when, what it reads and writes, and whether it changes anything in AWS.
+- Setup Guide, Part 5.2: the workload account id also goes into the new profile `dpdp-workload-auditor`.
+- README: Release 2 section; the operating model added to the release plan.
+
+---
+
 ## v0.2.0 · Release 1: Foundations, and know what you hold · 25 October 2026
 
 ### Added

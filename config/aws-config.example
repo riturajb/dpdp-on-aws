@@ -36,6 +36,13 @@ sso_role_name = PlatformEngineer
 region = ap-south-1
 output = json
 
+[profile dpdp-workload-auditor]
+sso_session = dpdp
+sso_account_id = 333333333333
+sso_role_name = Auditor
+region = ap-south-1
+output = json
+
 [profile dpdp-workload-admin]
 sso_session = dpdp
 sso_account_id = 333333333333

@@ -6,7 +6,7 @@ Most organisations still meet their DPDP obligations through policies, spreadshe
 
 This project turns the obligations of the Act and the Rules into controls that run in an AWS account, act automatically, and retain evidence of what they did. Every part is published here with the legal provision it addresses and the steps to run it.
 
-> **Status:** Release 1 (Foundations, and know what you hold) is available. Release 2 is expected in early November 2026. The main DPDP obligations apply from **13 May 2027**.
+> **Status:** Release 1 (Foundations, and know what you hold) and Release 2 (Find) are available. The operating model is expected in mid-November 2026. The main DPDP obligations apply from **13 May 2027**.
 
 ---
 
@@ -42,7 +42,39 @@ Fernleaf Finance does not exist. Any resemblance to a real company is unintended
 
 ---
 
-## Available now: Release 1, Foundations, and know what you hold
+## Available now: Release 2, Find
+
+Release 1 compared the personal data register with the stores tagged as holding personal data. Tags show only what someone remembered to label. Release 2 adds a scanner that reads every bucket, table and log group in the account, tagged or not, finds Aadhaar numbers, PANs, mobile numbers and email addresses, and compares every finding with the register.
+
+### What it proves
+
+| DPDP provision | What the system does | Test |
+|---|---|---|
+| Section 8(1) | Personal data is found wherever it sits in the account, tagged or not, and each finding is compared with the register | T8, T9, T10 |
+| Rule 6(1)(a) | Identifiers written into logs are found, so they can be removed, masked or replaced by tokens | T11 |
+
+Three realistic problems, all synthetic, are planted as a fire drill and found: an Aadhaar number typed into a support ticket, a marketing export in a bucket nobody tagged, and PAN and mobile numbers in a debug log. The register check from Release 1 passes with all three in place, because none of them is tagged. The scanner finds each one and gives it a verdict: expected, unexpected category or unregistered store. The guide also shows how a company would run the same scan on a schedule, with Amazon Macie for large S3 estates.
+
+### How it works
+
+- **Two confidence levels.** An Aadhaar number that passes the Verhoeff check digit, a PAN with a valid holder type and a mobile number starting 6 to 9 are high-confidence matches. Values in the right format that fail those checks are medium-confidence matches, and are reported too: a mistyped Aadhaar number in a call-centre note is still personal data.
+- **Read-only access.** The scanner runs as `Auditor`, which can read contents and change nothing.
+- **Masked findings only.** Reports hold masked values, and no hashes of identifiers, because a 12-digit Aadhaar number can be recovered from its hash by trying every number.
+
+### Beyond the code
+
+The [Release 2 Guide](docs/RELEASE_2_GUIDE.md) also covers what the code cannot show: the decisions management takes, owners, the quarterly discovery procedure, the evidence to keep, effort, and how to find personal data in SaaS, core systems, email, laptops and vendors. The template [`templates/discovery-plan.xlsx`](templates/discovery-plan.xlsx) holds the system inventory, an interview questionnaire, the scan scope and the reconciliation log.
+
+### Limitations
+
+- Backups and snapshots are not scanned yet (Release 8).
+- Names, addresses and dates of birth are not detected; the scanner finds identifiers with a fixed format.
+- Fernleaf Finance (fictional) keeps full Aadhaar numbers, all synthetic, in its customers table. A lender that authenticates Aadhaar through UIDAI must keep them in an Aadhaar Data Vault (UIDAI circular of 18 July 2025).
+- Amazon Macie, AWS's managed option for S3, is not used: it reads S3 only and its Aadhaar and PAN identifiers need a keyword nearby. The guide explains the choice.
+
+---
+
+## Release 1, Foundations, and know what you hold
 
 Release 1 builds the AWS foundation that every later release depends on, and the first DPDP controls on top of it: a register of personal data that checks itself, logs that no administrator can erase, and storage that cannot leave Mumbai.
 
@@ -66,9 +98,10 @@ Section 16 does not require personal data to stay in India; it allows the Centra
 | [`register/`](register/) | The personal data register of Fernleaf Finance (fictional): every category of personal data, its stores, purposes, legal basis, vendors, retention and legal reason |
 | [`policies/scp/`](policies/scp/) | Four guardrail policies (service control policies), explained statement by statement |
 | [`terraform/`](terraform/) | The AWS organisation, its accounts and staged guardrails; the organisation trail; locked log and evidence buckets; account baselines; the model company's data stores; budget alerts |
-| [`tools/`](tools/) | The register check, the customer summary, the synthetic data generator and the evidence recorder |
-| [`tests/`](tests/) | Fourteen tests. Three run offline on every pull request; eleven run live against AWS |
+| [`tools/`](tools/) | The register check, the customer summary, the personal data scanner and its detectors, the synthetic data generator, the planted problems for Release 2, and the evidence recorder |
+| [`tests/`](tests/) | Eighteen tests. Four run offline on every pull request; fourteen run live against AWS |
 | [`scripts/`](scripts/) | State bucket set-up and the bootstrap log helper |
+| [`templates/`](templates/) | Templates an organisation can use directly, starting with the discovery plan (Release 2) |
 | [`docs/`](docs/) | The setup guide, the Release 1 guide and the project standards |
 | [`.github/workflows/`](.github/workflows/) | Checks on every pull request: Terraform format, validation and lint; secret and misconfiguration scans; the register check and offline tests |
 
@@ -77,6 +110,7 @@ Section 16 does not require personal data to stay in India; it allows the Centra
 1. Read **Before you start** in the [Setup Guide](docs/SETUP_GUIDE.md). Use a new AWS account created only for this build: it creates an AWS organisation, and logs and evidence that stay locked after you finish.
 2. Build the platform with the [Setup Guide](docs/SETUP_GUIDE.md): the AWS organisation, sign-in, guardrails, logging, evidence storage and cost alerts.
 3. Build the release with the [Release 1 Guide](docs/RELEASE_1_GUIDE.md): the model company, the synthetic customers, the register and the tests.
+4. Then follow the [Release 2 Guide](docs/RELEASE_2_GUIDE.md): read-only access for the scanner, the three planted problems, the scan and the four new tests.
 
 Both guides give numbered steps, the result to expect after each step, and what to do if it differs. They work from a standard AWS account or from an account created with AWS's newer sign-up.
 
@@ -131,7 +165,8 @@ Each release is published here with release notes and announced on LinkedIn. Tim
 |---|---|---|---|
 | 0 | October 2026 | Blueprint: the DPDP Obligations Matrix and project standards | **Available** |
 | 1 | Late October 2026 | Foundations, and know what you hold: a register of personal data with its purpose and legal basis, logs that no administrator can erase, and a Mumbai-only guardrail | **Available** |
-| 2 | Early November 2026 | Find: what the company actually holds, compared with what its register says, including Aadhaar and PAN numbers | Planned |
+| 2 | Early November 2026 | Find: what the company actually holds, compared with what its register says, including Aadhaar and PAN numbers | **Available** |
+| Operating model | Mid-November 2026 | Who runs it: the governance charter, the privacy office and the DPO's mandate, a RACI for every obligation, and board reporting | Planned |
 | 3 | Mid-November 2026 | Prevent: security safeguards enforced before a change is released, and changes outside the process detected | Planned |
 | 4 | Mid-November 2026 | Notice and consent: an itemised notice, specific consent, and proof of what each person agreed to | Planned |
 | 5 | Late November 2026 | Withdrawal: as easy as consenting, and processing stops, including at vendors | Planned |

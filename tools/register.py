@@ -2,6 +2,12 @@
 
 Each problem is reported in plain English with the provision it relates to.
 A FAIL stops a release. A WARN must be read and decided by a person.
+
+Who runs it: Nobody directly. A library used by register_check.py, customer_summary.py,
+             discover.py, plant_findings.py and the tests.
+When:        Release 1 onwards.
+Reads:       register/personal-data-register.yaml.   Writes: nothing.
+Changes AWS: No.
 """
 from __future__ import annotations
 

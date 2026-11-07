@@ -4,6 +4,12 @@ Each record states the control, the time (IST), what was attempted, what the sys
 answered, the outcome, the Git commit of the code that ran the test, and a SHA-256
 checksum of the record itself. Records go to the locked evidence bucket when a
 bucket is given, otherwise to the local folder evidence/ (ignored by Git).
+
+Who runs it: Nobody directly. The tests call it through the `record` fixture in conftest.py.
+When:        Every test run, Release 1 onwards.
+Writes:      One JSON record per test: to the evidence bucket (live tests) or evidence/ (offline).
+Changes AWS: Live tests only: adds one object per test to the evidence bucket. The bucket is
+             locked in compliance mode, so no one can delete a record for 30 days.
 """
 from __future__ import annotations
 

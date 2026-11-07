@@ -6,6 +6,9 @@ What is checked:  Every store in the register exists, and every resource tagged
 Pass means:       No store holds personal data without the company knowing about it.
 Fail means:       The register and the account disagree.
 Evidence stored:  The evidence bucket for the target account.
+Who runs it:      The author or reader, with an engineer profile: pytest --live
+When:             Release 1, Step 6; Release 2, Step 6; the clean-room run.
+Changes AWS:      Writes one evidence record. Nothing else.
 """
 import pytest
 

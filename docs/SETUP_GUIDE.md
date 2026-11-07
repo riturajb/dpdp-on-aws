@@ -759,7 +759,7 @@ scripts/log_step.sh 3.4 "Screenshot 3.4-permission-sets.png: four permission set
    **Leave these profiles exactly as they are:**
 
    - `[profile dpdp-logarchive-admin]` and `[profile dpdp-logarchive-auditor]` (`222222222222`)
-   - `[profile dpdp-workload-eng]` and `[profile dpdp-workload-admin]` (`333333333333`)
+   - `[profile dpdp-workload-eng]`, `[profile dpdp-workload-auditor]` and `[profile dpdp-workload-admin]` (`333333333333`)
    - `[profile dpdp-sandbox-eng]`, further down
 
    Their numbers are placeholders for the log archive, workload and sandbox accounts, which do not exist yet. Terraform creates them in Part 4, and their real ids go in at Part 5.2. Do not change any `region = ap-south-1` line.
@@ -980,7 +980,7 @@ scripts/log_step.sh 5.1 \
    | Placeholder in the file | Replace with the id of | Profiles that use it |
    |---|---|---|
    | `222222222222` | `dpdp-log-archive` | `dpdp-logarchive-admin`, `dpdp-logarchive-auditor` |
-   | `333333333333` | `dpdp-workload` | `dpdp-workload-eng`, `dpdp-workload-admin` |
+   | `333333333333` | `dpdp-workload` | `dpdp-workload-eng`, `dpdp-workload-auditor`, `dpdp-workload-admin` |
    | `444444444444` | `dpdp-sandbox` | `dpdp-sandbox-eng` |
 
    The audit account has no command-line profile in Release 1, because no command runs there. Its profiles are added in the release that builds it.

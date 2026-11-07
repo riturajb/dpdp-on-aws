@@ -2,6 +2,10 @@
 
 Offline tests run everywhere, including GitHub Actions.
 Live tests (marked 'live') need AWS sign-in and run only with:  pytest --live
+
+Profiles come from config/local.env: the engineer profile (target_session) runs the tests and
+writes evidence; the auditor profile (scan_session, Release 2) scans with read-only access; the
+log archive profile is used only by T5.
 """
 from __future__ import annotations
 
@@ -71,6 +75,15 @@ def target_session(target):
     """Signed in to the target account as PlatformEngineer."""
     import boto3
     profile = env("DPDP_PROFILE_WORKLOAD" if target == "workload" else "DPDP_PROFILE_SANDBOX")
+    return boto3.Session(profile_name=profile, region_name="ap-south-1")
+
+
+@pytest.fixture(scope="session")
+def scan_session(target):
+    """Signed in to the target account with read-only access, for scanning: Auditor in the
+    workload account; PlatformEngineer in the sandbox, which has no Auditor assignment."""
+    import boto3
+    profile = env("DPDP_PROFILE_AUDITOR" if target == "workload" else "DPDP_PROFILE_SANDBOX")
     return boto3.Session(profile_name=profile, region_name="ap-south-1")
 
 

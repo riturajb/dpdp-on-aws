@@ -7,6 +7,9 @@ What is checked:  The target account and the log archive account have no IAM use
 Pass means:       No IAM users found.
 Fail means:       Someone created a user with stored credentials.
 Evidence stored:  The evidence bucket for the target account.
+Who runs it:      The author or reader: pytest --live
+When:             Release 1, Step 6; Release 2, Step 6; the clean-room run.
+Changes AWS:      Writes one evidence record. Nothing else.
 """
 import pytest
 
