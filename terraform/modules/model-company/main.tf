@@ -9,6 +9,12 @@
 # A store with personal data and no matching register entry is reported under Section 8(1).
 #
 # When adding a store: add it here with both tags, add it to the register, then run the check.
+#
+# Release 3 (Prevent) checks every plan against policies/rego before it is applied
+# (scripts/plan_check.sh). These stores meet those rules: tagged and registered (s.8(1)), no
+# public access (Rule 6(1)(b)), and recoverable, with point-in-time recovery on the tables and
+# versioning on the buckets (Rule 6(1)(d)). Bucket settings refer to the bucket by its name
+# (each.value.bucket), which is known when the plan is made, so the check can match them.
 
 # The account id makes the bucket names unique across AWS.
 data "aws_caller_identity" "current" {}
@@ -55,6 +61,13 @@ resource "aws_dynamodb_table" "store" {
   }
 
   # Encryption at rest with an AWS owned key is always on for DynamoDB.
+
+  # Point-in-time recovery: the table can be restored to any second of the last 35 days
+  # (Rule 6(1)(d), continued processing after loss or corruption).
+  point_in_time_recovery {
+    enabled = true
+  }
+
   tags = {
     DataClass     = "personal"
     RegisterStore = each.key
@@ -78,7 +91,7 @@ resource "aws_s3_bucket" "store" {
 # Encryption at rest with keys managed by S3 (Rule 6(1)(a)).
 resource "aws_s3_bucket_server_side_encryption_configuration" "store" {
   for_each = aws_s3_bucket.store
-  bucket   = each.value.id
+  bucket   = each.value.bucket
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"
@@ -89,7 +102,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "store" {
 # The account owns every object; access control lists are switched off.
 resource "aws_s3_bucket_ownership_controls" "store" {
   for_each = aws_s3_bucket.store
-  bucket   = each.value.id
+  bucket   = each.value.bucket
   rule {
     object_ownership = "BucketOwnerEnforced"
   }
@@ -98,9 +111,20 @@ resource "aws_s3_bucket_ownership_controls" "store" {
 # No public access.
 resource "aws_s3_bucket_public_access_block" "store" {
   for_each                = aws_s3_bucket.store
-  bucket                  = each.value.id
+  bucket                  = each.value.bucket
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# Versioning: an overwritten or deleted object keeps its earlier versions, so it can be recovered
+# (Rule 6(1)(d)). force_destroy above still removes every version when the sandbox copy is
+# destroyed.
+resource "aws_s3_bucket_versioning" "store" {
+  for_each = aws_s3_bucket.store
+  bucket   = each.value.bucket
+  versioning_configuration {
+    status = "Enabled"
+  }
 }
