@@ -14,9 +14,12 @@ They are created by `terraform/live/management/organization` and attached in thr
 | | | ProtectTheAuditTrail | Stopping, deleting or changing CloudTrail trails | Rule 6(1)(c): access logs must keep being recorded |
 | | | DenyTheRootUser | Any action by an account's root user, except root tasks run centrally from the management account | Root has unlimited power and no named owner; daily work uses Identity Center roles |
 | `protect-log-and-evidence-buckets` (buckets) | Workloads, Security | NoDeletionOrWeakeningOfLogsAndEvidence | Deleting log or evidence files or buckets; bypassing or shortening their lock; switching off versioning; adding lifecycle rules; changing their policy, encryption, ownership, access lists, public access settings or replication | Rule 6(1)(e): logs kept for a year and evidence that cannot be altered, even by an administrator. Attach only after the buckets exist |
+| | | NoStoppingOrWeakeningDetection | Stopping, deleting or changing the AWS Config recorder, its delivery channel and its rules, and deleting their results (Release 3) | Rule 6(1)(g): the check that the safeguards stay in place must keep running. Applied after the detective controls exist; changing them later needs the same detach procedure as the buckets |
 | `deny-costly-services` (cost) | Sandbox, Workloads | DenyNatGateways | Creating NAT gateways | About USD 32 a month each, even when idle |
 | | | DenyLargeInstances | Starting servers larger than t3/t4g micro or small | Prevents an accidental large bill |
 | | | DenyHighFixedCostServices | OpenSearch, MSK, Redshift, SageMaker endpoints, RDS, ElastiCache | Services with a fixed monthly cost that this project does not need |
+
+**Changing the detective controls** (Release 3): detach `buckets` from the Workloads unit, apply the change to `terraform/live/workload/detective`, attach it again.
 
 **Changing a guardrail:** edit the JSON file, run `terraform plan` in the organisation stack, read
 the plan, apply. To change a protected bucket: detach `buckets` from the Security unit, apply the
