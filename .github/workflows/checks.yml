@@ -1,9 +1,13 @@
 # Checks on every pull request and on main. No AWS credentials are used here.
 #
-# Three jobs run side by side. A pull request can be merged only when all three pass:
+# Four jobs run side by side. A pull request can be merged only when all of them pass:
 #   terraform - the infrastructure code is formatted, valid and free of common mistakes
 #   security  - no secret is committed, and no critical misconfiguration is in the code
 #   register  - the personal data register is complete, and the offline tests pass
+#   plan      - (Release 3) the workload stacks are planned against the real account with a
+#               read-only role, and every plan is checked against policies/rego. This job runs
+#               only where the repository's owner has set it up (Release 3 guide, Step 8);
+#               in copies without the three secrets it is skipped, and the other jobs still run.
 name: checks
 
 on:
@@ -87,9 +91,68 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
+      # conftest runs the plan-check rules; the version is pinned in config/tool-versions.env.
+      - name: Install conftest
+        run: |
+          scripts/install_conftest.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       # Same check as before every commit on the laptop (see .pre-commit-config.yaml).
       - name: Register check (Section 4, Section 8(2), Rule 8(3))
         run: python tools/register_check.py
-      # Runs the offline tests. Live tests need AWS sign-in, so they are skipped here.
+      # Runs the offline tests, including T12 (the plan-check rules). Live tests need AWS
+      # sign-in, so they are skipped here.
       - name: Offline tests
         run: python -m pytest
+
+  plan:
+    name: Plan the workload stacks and check them (Release 3)
+    # Pull requests from forks never receive AWS credentials; the job is skipped for them.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    # id-token lets the job prove to AWS that it is this repository's pull request (OpenID
+    # Connect), in exchange for credentials that expire after the run. No key is stored.
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      HAS_ROLE: ${{ secrets.AWS_PLAN_ROLE_ARN != '' }}
+      # The account id appears in bucket names. As a secret, GitHub masks it in every log line.
+      ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      TF_VAR_aws_profile: ""
+    steps:
+      - name: Skip if this copy is not set up for planning
+        if: env.HAS_ROLE != 'true'
+        run: echo "The secrets for the plan job are not set in this repository; nothing to plan."
+      - uses: actions/checkout@v4
+        if: env.HAS_ROLE == 'true'
+      - uses: hashicorp/setup-terraform@v3
+        if: env.HAS_ROLE == 'true'
+        with:
+          terraform_version: "1.x"
+          terraform_wrapper: false
+      - name: Install conftest
+        if: env.HAS_ROLE == 'true'
+        run: |
+          scripts/install_conftest.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: env.HAS_ROLE == 'true'
+        with:
+          role-to-assume: ${{ secrets.AWS_PLAN_ROLE_ARN }}
+          aws-region: ap-south-1
+      # Plans are made without taking the state lock (-lock=false): the role is read-only.
+      # Plan output is not printed, because it lists resource names; only the check results are.
+      - name: Plan and check each workload stack
+        if: env.HAS_ROLE == 'true'
+        run: |
+          fail=0
+          for d in terraform/live/workload/baseline terraform/live/workload/model-company terraform/live/workload/detective; do
+            echo "::group::$d"
+            terraform -chdir="$d" init -input=false -backend-config="bucket=dpdp-tfstate-${ACCOUNT_ID}" > /dev/null
+            terraform -chdir="$d" plan -input=false -lock=false -out=tfplan > /dev/null
+            terraform -chdir="$d" show -json tfplan > "$d/plan.json"
+            conftest test "$d/plan.json" --policy policies/rego \
+              --data register/personal-data-register.yaml --no-color || fail=1
+            echo "::endgroup::"
+          done
+          exit $fail

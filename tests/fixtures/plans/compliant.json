@@ -1,0 +1,188 @@
+{
+ "format_version": "1.2",
+ "terraform_version": "1.10.5",
+ "resource_changes": [
+  {
+   "address": "module.model_company.aws_s3_bucket.store[\"bureau-reports\"]",
+   "mode": "managed",
+   "type": "aws_s3_bucket",
+   "name": "store",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "before": {
+     "bucket": "dpdp-bureau-reports-000000000000",
+     "force_destroy": true,
+     "tags": {
+      "DataClass": "personal",
+      "RegisterStore": "bureau-reports"
+     },
+     "tags_all": {
+      "Project": "dpdp-in-practice",
+      "ManagedBy": "terraform",
+      "DataOrigin": "synthetic",
+      "DataClass": "personal",
+      "RegisterStore": "bureau-reports"
+     }
+    },
+    "after": {
+     "bucket": "dpdp-bureau-reports-000000000000",
+     "force_destroy": true,
+     "tags": {
+      "DataClass": "personal",
+      "RegisterStore": "bureau-reports"
+     },
+     "tags_all": {
+      "Project": "dpdp-in-practice",
+      "ManagedBy": "terraform",
+      "DataOrigin": "synthetic",
+      "DataClass": "personal",
+      "RegisterStore": "bureau-reports"
+     }
+    },
+    "after_unknown": {
+     "id": true,
+     "arn": true
+    }
+   }
+  },
+  {
+   "address": "module.model_company.aws_s3_bucket_public_access_block.store[\"bureau-reports\"]",
+   "mode": "managed",
+   "type": "aws_s3_bucket_public_access_block",
+   "name": "store",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "before": {
+     "bucket": "dpdp-bureau-reports-000000000000",
+     "block_public_acls": true,
+     "block_public_policy": true,
+     "ignore_public_acls": true,
+     "restrict_public_buckets": true
+    },
+    "after": {
+     "bucket": "dpdp-bureau-reports-000000000000",
+     "block_public_acls": true,
+     "block_public_policy": true,
+     "ignore_public_acls": true,
+     "restrict_public_buckets": true
+    },
+    "after_unknown": {
+     "id": true,
+     "arn": true
+    }
+   }
+  },
+  {
+   "address": "module.model_company.aws_s3_bucket_versioning.store[\"bureau-reports\"]",
+   "mode": "managed",
+   "type": "aws_s3_bucket_versioning",
+   "name": "store",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "create"
+    ],
+    "before": null,
+    "after": {
+     "bucket": "dpdp-bureau-reports-000000000000",
+     "expected_bucket_owner": null,
+     "mfa": null,
+     "versioning_configuration": [
+      {
+       "mfa_delete": null,
+       "status": "Enabled"
+      }
+     ]
+    },
+    "after_unknown": {
+     "id": true,
+     "arn": true
+    }
+   }
+  },
+  {
+   "address": "module.model_company.aws_dynamodb_table.store[\"customers-db\"]",
+   "mode": "managed",
+   "type": "aws_dynamodb_table",
+   "name": "store",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "update"
+    ],
+    "before": {
+     "name": "dpdp-customers",
+     "billing_mode": "PAY_PER_REQUEST",
+     "hash_key": "customer_id",
+     "point_in_time_recovery": [
+      {
+       "enabled": true
+      }
+     ],
+     "tags": {
+      "DataClass": "personal",
+      "RegisterStore": "customers-db"
+     },
+     "tags_all": {
+      "Project": "dpdp-in-practice",
+      "ManagedBy": "terraform",
+      "DataOrigin": "synthetic",
+      "DataClass": "personal",
+      "RegisterStore": "customers-db"
+     }
+    },
+    "after": {
+     "name": "dpdp-customers",
+     "billing_mode": "PAY_PER_REQUEST",
+     "hash_key": "customer_id",
+     "point_in_time_recovery": [
+      {
+       "enabled": true
+      }
+     ],
+     "tags": {
+      "DataClass": "personal",
+      "RegisterStore": "customers-db"
+     },
+     "tags_all": {
+      "Project": "dpdp-in-practice",
+      "ManagedBy": "terraform",
+      "DataOrigin": "synthetic",
+      "DataClass": "personal",
+      "RegisterStore": "customers-db"
+     }
+    },
+    "after_unknown": {
+     "id": true,
+     "arn": true
+    }
+   }
+  }
+ ],
+ "configuration": {
+  "provider_config": {
+   "aws": {
+    "name": "aws",
+    "full_name": "registry.terraform.io/hashicorp/aws",
+    "version_constraint": "~> 5.100",
+    "expressions": {
+     "region": {
+      "constant_value": "ap-south-1"
+     },
+     "profile": {
+      "references": [
+       "var.aws_profile"
+      ]
+     }
+    }
+   }
+  },
+  "root_module": {}
+ }
+}

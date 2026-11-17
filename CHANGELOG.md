@@ -4,6 +4,30 @@ Every release of DPDP on AWS is listed here, newest first. Each entry states wha
 
 ---
 
+## v0.4.0 · Release 3: Prevent · 17 November 2026
+
+### Added
+
+- **Plan-check rules** (`policies/rego/prevent.rego`, with unit tests): every bucket and table carries `DataClass`, and a personal store names its register entry (Section 8(1)); every bucket has its public access block (Rule 6(1)(b)); personal buckets are versioned and personal tables have point-in-time recovery (Rule 6(1)(d)); log groups keep logs for at least a year (Rule 6(1)(e)); every stack stays in Mumbai. Each denial names its provision.
+- **The gate** (`scripts/plan_check.sh`): plans a stack, checks the plan, and applies only a plan that passed, exactly as checked. conftest is pinned (`config/tool-versions.env`) and installed with a checksum check (`scripts/install_conftest.sh`).
+- **Detective controls** (`terraform/modules/detective-controls`, stacks `workload/detective` and `sandbox/detective`): AWS Config records S3 buckets, DynamoDB tables and log groups and checks them with six managed rules matching the plan-check rules.
+- **Fire drill** (`tools/drift_drill.py`): a bucket and a log group made by hand, flagged by AWS Config, then removed.
+- **Four tests** (T12 offline; T13 to T15 live), with evidence records. Twenty-two tests in total.
+- **Pull request check** (optional): the `plan` job in GitHub Actions, signed in through OpenID Connect with the read-only role `dpdp-github-plan` (`terraform/live/workload/ci-plan`). No access key is stored; pull requests from forks get no credentials.
+- **Release 3 Guide** (`docs/RELEASE_3_GUIDE.md`), including "Beyond the code" (decisions, owners, the change procedure, evidence, effort) and how a company would run it.
+
+### Changed
+
+- **Guardrail** `buckets`: new statement `NoStoppingOrWeakeningDetection`; nobody in the workload account can stop, delete or change AWS Config. `policies/scp/README.md` gives the procedure for changing the detective controls.
+- **Permission set** `PlatformEngineer`: gains `iam:PassRole` on the AWS Config service-linked role only, so an engineer can switch on the recorder. The role itself is created once with the AWS CLI.
+- **Model company**: point-in-time recovery on the four tables; versioning on the two buckets.
+- **State buckets** are tagged `DataClass = none` (`scripts/bootstrap_state_bucket.sh`, and Step 2 of the guide for existing buckets).
+- The workload stacks accept an empty profile, so the same code runs in GitHub Actions.
+- New setting `DPDP_PROFILE_WORKLOAD_ADMIN` in `config/local.env` (test T15).
+- README: Release 3 section; the Prevent part of the system description now matches what is built.
+
+---
+
 ## v0.3.0 · Release 2: Find · 7 November 2026
 
 ### Added

@@ -26,6 +26,21 @@
         "arn:aws:s3:::dpdp-evidence-*",
         "arn:aws:s3:::dpdp-evidence-*/*"
       ]
+    },
+    {
+      "Sid": "NoStoppingOrWeakeningDetection",
+      "Effect": "Deny",
+      "Action": [
+        "config:StopConfigurationRecorder",
+        "config:DeleteConfigurationRecorder",
+        "config:PutConfigurationRecorder",
+        "config:DeleteDeliveryChannel",
+        "config:PutDeliveryChannel",
+        "config:DeleteConfigRule",
+        "config:PutConfigRule",
+        "config:DeleteEvaluationResults"
+      ],
+      "Resource": "*"
     }
   ]
 }

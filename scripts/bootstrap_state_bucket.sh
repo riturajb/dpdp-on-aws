@@ -6,6 +6,8 @@
 #
 # Terraform cannot create the bucket it stores its own state in, so this one step uses the AWS CLI.
 # The bucket is versioned (earlier states can be recovered), encrypted, and closed to the public.
+# The bucket is tagged DataClass = none: it holds Terraform state, not personal data (Release 3
+# checks that every bucket says which it is).
 # Safe to run again: if the bucket exists, it only prints the backend.hcl lines.
 set -euo pipefail
 PROFILE="${1:?usage: $0 <aws-profile>}"
@@ -27,7 +29,7 @@ else
   aws s3api put-public-access-block --bucket "$BUCKET" --profile "$PROFILE" \
     --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
   aws s3api put-bucket-tagging --bucket "$BUCKET" --profile "$PROFILE" \
-    --tagging 'TagSet=[{Key=Project,Value=dpdp-in-practice},{Key=ManagedBy,Value=bootstrap-script}]'
+    --tagging 'TagSet=[{Key=Project,Value=dpdp-in-practice},{Key=ManagedBy,Value=bootstrap-script},{Key=DataClass,Value=none}]'
   echo "Created state bucket: $BUCKET"
 fi
 # These two lines go into backend.hcl in each stack folder of this account (never committed).

@@ -6,7 +6,7 @@ Most organisations still meet their DPDP obligations through policies, spreadshe
 
 This project turns the obligations of the Act and the Rules into controls that run in an AWS account, act automatically, and retain evidence of what they did. Every part is published here with the legal provision it addresses and the steps to run it.
 
-> **Status:** Release 1 (Foundations, and know what you hold) and Release 2 (Find) are available. The operating model is expected in mid-November 2026. The main DPDP obligations apply from **13 May 2027**.
+> **Status:** Release 1 (Foundations, and know what you hold), Release 2 (Find) and Release 3 (Prevent) are available. The operating model is expected in mid-November 2026. The main DPDP obligations apply from **13 May 2027**.
 
 ---
 
@@ -15,7 +15,7 @@ This project turns the obligations of the Act and the Rules into controls that r
 | Part | What it will do | Main DPDP provisions |
 |---|---|---|
 | **Find** | Scan databases, storage buckets, logs and backups daily for personal data, including Aadhaar and PAN numbers, and flag any location the register does not list. | Act s.8(5); Rule 6(1)(a) |
-| **Prevent** | Check every infrastructure change before release. Block personal data outside approved regions, unencrypted storage, and logs kept for less than one year, and record the reason. | Rule 6(1)(a), Rule 6(1)(e); Act s.16 |
+| **Prevent** | Check every infrastructure change before release. Block data stores that do not say whether they hold personal data, public buckets, personal data that cannot be recovered, logs kept for less than one year, and resources outside Mumbai. Detect changes made outside the process. | Act s.8(1); Rule 6(1)(b), (d), (e), (g) |
 | **Enforce** | Keep consent as a tamper-evident record that systems check before using personal data. When consent is withdrawn, stop marketing, SMS, WhatsApp and call-centre feeds automatically. Exclude children's accounts from tracking, profiling and targeted advertising. | Act s.6(4), s.6(6), s.6(10), s.9 |
 | **Erase** | Delete what can be deleted. Seal what a law requires to be kept: restricted, every read logged, each record with its own expiry date. Keep backups for weeks, not years, and re-apply every erasure after any restore. Verify by searching for a deleted test customer. | Act s.8(7), s.12(3); Rule 8(3) |
 | **Respond** | Draft customer communications from system records and send them only after human approval. Start the breach clock from a security alert, identify affected customers, and draft the 72-hour report to the Data Protection Board. | Act s.8(6), s.13; Rule 7, Rule 14 |
@@ -42,7 +42,42 @@ Fernleaf Finance does not exist. Any resemblance to a real company is unintended
 
 ---
 
-## Available now: Release 2, Find
+## Available now: Release 3, Prevent
+
+Release 2 found personal data after it had been stored in the wrong place. Release 3 stops that kind of change before it is made, and catches it if someone makes it anyway.
+
+### What it proves
+
+| DPDP provision | What the system does | Test |
+|---|---|---|
+| Section 8(1) | No data store can be created without saying whether it holds personal data, and a personal store must be in the register | T12, T13, T14 |
+| Rule 6(1)(b) | No bucket can be created without its public access block | T12, T13 |
+| Rule 6(1)(d) | Personal stores can be recovered: versioning on buckets, point-in-time recovery on tables | T12, T13 |
+| Rule 6(1)(e) | No log group can keep logs for less than one year | T12, T13, T14 |
+| Rule 6(1)(g) | Changes made outside the process are detected, and detection cannot be stopped, even by an administrator | T14, T15 |
+
+### How it works
+
+- **Before a change.** Every Terraform plan is checked against written rules ([`policies/rego/`](policies/rego/), run by conftest) by [`scripts/plan_check.sh`](scripts/plan_check.sh). A plan that breaks a rule is stopped, and each message names its provision, such as `[R.6(1)(e)] ... keeps logs for 7 days`. A plan that passes is applied exactly as checked.
+- **After a change.** AWS Config records the S3 buckets, DynamoDB tables and log groups and checks them against the same rules. A bucket created by hand in the console is flagged within minutes.
+- **Detection cannot be switched off.** A guardrail stops anyone in the workload account, including its administrator, from stopping or changing AWS Config.
+- **Every pull request** can be planned and checked in GitHub Actions, signed in through OpenID Connect with a read-only role. No access key is stored.
+
+Two fire drills show it working: a deliberately non-compliant stack is stopped at the plan, once for each provision, and a bucket and a log group made by hand are flagged by AWS Config, then removed.
+
+### Beyond the code
+
+The [Release 3 Guide](docs/RELEASE_3_GUIDE.md) also covers what the code cannot show: the change process, who approves changes and exceptions, how drift is dealt with, the evidence to keep, effort, and the same idea for SaaS and systems outside AWS.
+
+### Limitations
+
+- Changes are still applied from the laptop, through the plan check. An approval-gated pipeline without direct write access comes later.
+- Encryption at rest is not checked: S3 and DynamoDB encrypt by default. Customer-managed keys are a later question.
+- AWS Config runs in the workload account only, for three resource types. Findings are reported, not corrected automatically, and there are no alerts yet.
+
+---
+
+## Release 2, Find
 
 Release 1 compared the personal data register with the stores tagged as holding personal data. Tags show only what someone remembered to label. Release 2 adds a scanner that reads every bucket, table and log group in the account, tagged or not, finds Aadhaar numbers, PANs, mobile numbers and email addresses, and compares every finding with the register.
 
@@ -167,7 +202,7 @@ Each release is published here with release notes and announced on LinkedIn. Tim
 | 1 | Late October 2026 | Foundations, and know what you hold: a register of personal data with its purpose and legal basis, logs that no administrator can erase, and a Mumbai-only guardrail | **Available** |
 | 2 | Early November 2026 | Find: what the company actually holds, compared with what its register says, including Aadhaar and PAN numbers | **Available** |
 | Operating model | Mid-November 2026 | Who runs it: the governance charter, the privacy office and the DPO's mandate, a RACI for every obligation, and board reporting | Planned |
-| 3 | Mid-November 2026 | Prevent: security safeguards enforced before a change is released, and changes outside the process detected | Planned |
+| 3 | Mid-November 2026 | Prevent: security safeguards enforced before a change is released, and changes outside the process detected | **Available** |
 | 4 | Mid-November 2026 | Notice and consent: an itemised notice, specific consent, and proof of what each person agreed to | Planned |
 | 5 | Late November 2026 | Withdrawal: as easy as consenting, and processing stops, including at vendors | Planned |
 | 6 | Early December 2026 | Who gives consent: verifiable parental consent, no tracking of children, and consent through a Consent Manager | Planned |

@@ -22,11 +22,12 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
-# ---- Bootstrap log, saved outputs, screenshots and demonstration runs: contain account ids, stay on this laptop ----
+# ---- Bootstrap log, saved outputs, screenshots, demonstration runs and Terraform plans: contain account ids, stay on this laptop ----
 notes/bootstrap-log.md
 notes/outputs/
 notes/screenshots/
 notes/demo/
+notes/plans/
 
 # ---- Generated locally ----
 data/
@@ -43,3 +44,6 @@ Thumbs.db
 ~$*.xlsx
 .idea/
 .vscode/
+
+# ---- Test fixture: only ever planned, its provider lock file is not kept ----
+tests/fixtures/noncompliant-stack/.terraform.lock.hcl

@@ -5,7 +5,7 @@ Live tests (marked 'live') need AWS sign-in and run only with:  pytest --live
 
 Profiles come from config/local.env: the engineer profile (target_session) runs the tests and
 writes evidence; the auditor profile (scan_session, Release 2) scans with read-only access; the
-log archive profile is used only by T5.
+log archive profile is used only by T5, and the workload administrator profile only by T15.
 """
 from __future__ import annotations
 
@@ -85,6 +85,13 @@ def scan_session(target):
     import boto3
     profile = env("DPDP_PROFILE_AUDITOR" if target == "workload" else "DPDP_PROFILE_SANDBOX")
     return boto3.Session(profile_name=profile, region_name="ap-south-1")
+
+
+@pytest.fixture(scope="session")
+def workload_admin_session():
+    """Signed in to dpdp-workload as BreakGlassAdmin, the most powerful role there (Release 3, T15)."""
+    import boto3
+    return boto3.Session(profile_name=env("DPDP_PROFILE_WORKLOAD_ADMIN"), region_name="ap-south-1")
 
 
 @pytest.fixture(scope="session")
