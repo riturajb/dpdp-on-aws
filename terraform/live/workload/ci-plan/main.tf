@@ -15,6 +15,14 @@ data "aws_caller_identity" "current" {}
 
 locals {
   state_bucket = "dpdp-tfstate-${data.aws_caller_identity.current.account_id}"
+
+  # GitHub names the sender of each token in its "sub" claim. Repositories created after
+  # 15 July 2026, and older ones that opt in, use immutable ids next to the names
+  # (owner@id/name@id), so a deleted name taken over by someone else cannot match.
+  # https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens
+  owner   = split("/", var.github_repository)[0]
+  repo    = split("/", var.github_repository)[1]
+  subject = "repo:${local.owner}@${var.github_owner_id}/${local.repo}@${var.github_repository_id}:pull_request"
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -22,8 +30,8 @@ resource "aws_iam_openid_connect_provider" "github" {
   client_id_list = ["sts.amazonaws.com"]
 }
 
-# Only pull requests of this repository can assume the role. GitHub does not give these
-# credentials to pull requests opened from forks.
+# Only pull requests of this repository, identified by its immutable ids, can assume the role.
+# GitHub does not give these credentials to pull requests opened from forks.
 resource "aws_iam_role" "plan" {
   name                 = "dpdp-github-plan"
   description          = "Read-only Terraform plan for pull requests (Release 3)"
@@ -38,7 +46,7 @@ resource "aws_iam_role" "plan" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:pull_request"
+          "token.actions.githubusercontent.com:sub" = local.subject
         }
       }
     }]

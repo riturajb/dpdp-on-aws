@@ -1,2 +1,4 @@
 # Copy to terraform.tfvars (ignored by Git). The Release 3 guide writes this file for you.
-github_repository = "riturajb/dpdp-on-aws"
+github_repository    = "riturajb/dpdp-on-aws"
+github_owner_id      = "12345678"
+github_repository_id = "123456789"

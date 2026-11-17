@@ -298,13 +298,19 @@ The four new tests:
 
 Do this only in your own copy on GitHub (setup guide, Part 1.4). Without it, the `plan` job is skipped and the other checks still run.
 
-1. Write the repository name into the stack's settings, from your copy's own address:
+1. Write the repository's name and ids into the stack's settings, from your copy's own address and GitHub's public API. It must print three lines: `github_repository`, `github_owner_id` and `github_repository_id`.
    ```bash
    r=$(git remote get-url origin \
      | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##')
-   echo "github_repository = \"$r\"" > terraform/live/workload/ci-plan/terraform.tfvars
+   curl -fsS "https://api.github.com/repos/$r" | python3 -c 'import json, sys
+   d = json.load(sys.stdin)
+   print("github_repository    = \"%s\"" % d["full_name"])
+   print("github_owner_id      = \"%s\"" % d["owner"]["id"])
+   print("github_repository_id = \"%s\"" % d["id"])' \
+     > terraform/live/workload/ci-plan/terraform.tfvars
    cat terraform/live/workload/ci-plan/terraform.tfvars
    ```
+   GitHub identifies each pull request's run by the repository's owner and name together with their numeric ids, which never change. The role trusts exactly those, so a deleted name taken over by someone else cannot use it ([GitHub changelog, 23 April 2026](https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens)). Repositories created after 15 July 2026 use this form automatically; for an older copy, switch on immutable subject claims in its OIDC settings first.
 2. Give the stack its state settings, with the administrator profile (this stack creates an IAM role, which PlatformEngineer cannot do):
    ```bash
    sed 's/dpdp-workload-eng/dpdp-workload-admin/' \
