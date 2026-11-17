@@ -6,7 +6,7 @@ Most organisations still meet their DPDP obligations through policies, spreadshe
 
 This project turns the obligations of the Act and the Rules into controls that run in an AWS account, act automatically, and retain evidence of what they did. Every part is published here with the legal provision it addresses and the steps to run it.
 
-> **Status:** Release 1 (Foundations, and know what you hold), Release 2 (Find) and Release 3 (Prevent) are available. The operating model is expected in mid-November 2026. The main DPDP obligations apply from **13 May 2027**.
+> **Status:** Release 1 (Foundations, and know what you hold), Release 2 (Find) and Release 3 (Prevent) are available. The operating model is next, expected in late November 2026. The main DPDP obligations apply from **13 May 2027**.
 
 ---
 
@@ -201,18 +201,18 @@ Each release is published here with release notes and announced on LinkedIn. Tim
 | 0 | October 2026 | Blueprint: the DPDP Obligations Matrix and project standards | **Available** |
 | 1 | Late October 2026 | Foundations, and know what you hold: a register of personal data with its purpose and legal basis, logs that no administrator can erase, and a Mumbai-only guardrail | **Available** |
 | 2 | Early November 2026 | Find: what the company actually holds, compared with what its register says, including Aadhaar and PAN numbers | **Available** |
-| Operating model | Mid-November 2026 | Who runs it: the governance charter, the privacy office and the DPO's mandate, a RACI for every obligation, and board reporting | Planned |
 | 3 | Mid-November 2026 | Prevent: security safeguards enforced before a change is released, and changes outside the process detected | **Available** |
-| 4 | Mid-November 2026 | Notice and consent: an itemised notice, specific consent, and proof of what each person agreed to | Planned |
-| 5 | Late November 2026 | Withdrawal: as easy as consenting, and processing stops, including at vendors | Planned |
-| 6 | Early December 2026 | Who gives consent: verifiable parental consent, no tracking of children, and consent through a Consent Manager | Planned |
-| 7 | Early December 2026 | Retention and conflicts with other laws: the legal reason and expiry date for every record | Planned |
-| 8 | Mid-December 2026 | Erasure: delete, seal what must be kept, keep backups short, and verify | Planned |
-| 9 | Late December 2026 | Breach response: the 72-hour clock, affected customers and draft notices | Planned |
-| 10 | Late December 2026 | Rights and grievances: requests and grievances tracked against their deadlines | Planned |
-| 11 | Early January 2027 | Vendors: which vendor holds which data, and their erasure confirmations | Planned |
-| 12 | Mid-January 2027 | Prove: daily control tests, auditor reperformance and a management view | Planned |
-| 13 | Late January 2027 | AI assistant with defined limits | Planned |
+| Operating model | Late November 2026 | Who runs it: the governance charter, the privacy office and the DPO's mandate, a RACI for every obligation, and board reporting | **Next** |
+| 4 | December 2026 | Notice and consent: an itemised notice, specific consent, and proof of what each person agreed to | Planned |
+| 5 | December 2026 | Withdrawal: as easy as consenting, and processing stops, including at vendors | Planned |
+| 6 | January 2027 | Who gives consent: verifiable parental consent, no tracking of children, and consent through a Consent Manager | Planned |
+| 7 | January 2027 | Retention and conflicts with other laws: the legal reason and expiry date for every record | Planned |
+| 8 | January 2027 | Erasure: delete, seal what must be kept, keep backups short, and verify | Planned |
+| 9 | January 2027 | Breach response: the 72-hour clock, affected customers and draft notices | Planned |
+| 10 | January 2027 | Rights and grievances: requests and grievances tracked against their deadlines | Planned |
+| 11 | February 2027 | Vendors: which vendor holds which data, and their erasure confirmations | Planned |
+| 12 | February 2027 | Prove: daily control tests, auditor reperformance and a management view | Planned |
+| 13 | February 2027 | AI assistant with defined limits | Planned |
 
 The complete system is planned to be tested end to end and tagged v1.0.0 well before the main obligations apply on 13 May 2027.
 
