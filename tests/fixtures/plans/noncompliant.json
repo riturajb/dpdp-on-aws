@@ -1,0 +1,112 @@
+{
+ "format_version": "1.2",
+ "terraform_version": "1.10.5",
+ "resource_changes": [
+  {
+   "address": "aws_s3_bucket.export",
+   "mode": "managed",
+   "type": "aws_s3_bucket",
+   "name": "export",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "create"
+    ],
+    "before": null,
+    "after": {
+     "bucket": "dpdp-marketing-export-000000000000",
+     "force_destroy": false,
+     "tags": null,
+     "tags_all": {
+      "Project": "dpdp-in-practice",
+      "ManagedBy": "terraform",
+      "DataOrigin": "synthetic"
+     }
+    },
+    "after_unknown": {
+     "id": true,
+     "arn": true
+    }
+   }
+  },
+  {
+   "address": "aws_dynamodb_table.leads",
+   "mode": "managed",
+   "type": "aws_dynamodb_table",
+   "name": "leads",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "create"
+    ],
+    "before": null,
+    "after": {
+     "name": "dpdp-leads",
+     "billing_mode": "PAY_PER_REQUEST",
+     "hash_key": "lead_id",
+     "point_in_time_recovery": [
+      {
+       "enabled": false
+      }
+     ],
+     "tags": {
+      "DataClass": "personal",
+      "RegisterStore": "leads-db"
+     },
+     "tags_all": {
+      "Project": "dpdp-in-practice",
+      "ManagedBy": "terraform",
+      "DataOrigin": "synthetic",
+      "DataClass": "personal",
+      "RegisterStore": "leads-db"
+     }
+    },
+    "after_unknown": {
+     "id": true,
+     "arn": true
+    }
+   }
+  },
+  {
+   "address": "aws_cloudwatch_log_group.debug",
+   "mode": "managed",
+   "type": "aws_cloudwatch_log_group",
+   "name": "debug",
+   "provider_name": "registry.terraform.io/hashicorp/aws",
+   "change": {
+    "actions": [
+     "create"
+    ],
+    "before": null,
+    "after": {
+     "name": "/fernleaf/loan-api",
+     "retention_in_days": 7,
+     "tags": null,
+     "tags_all": {
+      "Project": "dpdp-in-practice",
+      "ManagedBy": "terraform",
+      "DataOrigin": "synthetic"
+     }
+    },
+    "after_unknown": {
+     "id": true,
+     "arn": true
+    }
+   }
+  }
+ ],
+ "configuration": {
+  "provider_config": {
+   "aws": {
+    "name": "aws",
+    "full_name": "registry.terraform.io/hashicorp/aws",
+    "expressions": {
+     "region": {
+      "constant_value": "us-east-1"
+     }
+    }
+   }
+  },
+  "root_module": {}
+ }
+}
