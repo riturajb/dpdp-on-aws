@@ -4,6 +4,13 @@ Every release of DPDP on AWS is listed here, newest first. Each entry states wha
 
 ---
 
+## Release plan · 18 November 2026
+
+- The operating model moves after Release 3 and is next, expected in late November 2026.
+- Releases 4 to 13 move about one month later and are now given by month. The complete system is still planned well before the main obligations apply on 13 May 2027.
+
+---
+
 ## v0.4.0 · Release 3: Prevent · 17 November 2026
 
 ### Added
