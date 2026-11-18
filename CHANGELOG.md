@@ -4,6 +4,23 @@ Every release of DPDP on AWS is listed here, newest first. Each entry states wha
 
 ---
 
+## v0.4.1 · Operating model · 18 November 2026
+
+### Added
+
+- **Operating model** (`operating-model/`), a companion release with no AWS code: who is accountable for DPDP compliance, who decides what, and what reaches the board of directors. Each file is filled in for Fernleaf Finance (fictional).
+- **Governance charter**: scope, accountability, a privacy committee, decision rights with one decider each, escalation and reporting.
+- **Privacy office and Data Protection Officer mandate**: the Privacy Lead for every company, published under Section 8(9) and Rule 9; the Data Protection Officer only for a Significant Data Fiduciary (Section 10(2)(a)).
+- **RACI** (`raci.xlsx`): one row for each of the 40 obligations in the Obligations Matrix, with one accountable role per row, checked by a formula.
+- **Quarterly board report template**, **policy index** covering all 40 control identifiers, and a **Data Protection Impact Assessment template** with a worked example.
+
+### Changed
+
+- Exceptions to a Release 3 security rule now have one decider: the system owner decides and the CISO must agree. The Release 3 guide named both as accountable; its owners table is corrected to match.
+- README: operating model section; release plan status.
+
+---
+
 ## Release plan · 18 November 2026
 
 - The operating model moves after Release 3 and is next, expected in late November 2026.
