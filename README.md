@@ -6,7 +6,7 @@ Most organisations still meet their DPDP obligations through policies, spreadshe
 
 This project turns the obligations of the Act and the Rules into controls that run in an AWS account, act automatically, and retain evidence of what they did. Every part is published here with the legal provision it addresses and the steps to run it.
 
-> **Status:** Release 1 (Foundations, and know what you hold), Release 2 (Find) and Release 3 (Prevent) are available. The operating model is next, expected in late November 2026. The main DPDP obligations apply from **13 May 2027**.
+> **Status:** Release 1 (Foundations, and know what you hold), Release 2 (Find), Release 3 (Prevent) and the operating model are available. Release 4 (Notice and consent) is expected in December 2026. The main DPDP obligations apply from **13 May 2027**.
 
 ---
 
@@ -42,7 +42,24 @@ Fernleaf Finance does not exist. Any resemblance to a real company is unintended
 
 ---
 
-## Available now: Release 3, Prevent
+## Available now: the operating model
+
+Releases 1 to 3 built controls that run in an AWS account. Each ended with "Beyond the code": the decisions and owners the code depends on. The operating model brings them together: who is accountable for DPDP compliance, who decides what, and what reaches the board of directors. It contains no AWS code.
+
+| File | What it is |
+|---|---|
+| [`operating-model/governance-charter.md`](operating-model/governance-charter.md) | Scope, accountability, the privacy committee, decision rights, escalation and reporting |
+| [`operating-model/privacy-office-and-dpo-mandate.md`](operating-model/privacy-office-and-dpo-mandate.md) | The Privacy Lead's mandate, and what changes for a Significant Data Fiduciary |
+| [`operating-model/raci.xlsx`](operating-model/raci.xlsx) | One accountable role for each of the 40 obligations in the Obligations Matrix |
+| [`operating-model/board-report-template.md`](operating-model/board-report-template.md) | The one-page quarterly report to the board of directors |
+| [`operating-model/policy-index.md`](operating-model/policy-index.md) | Which policy covers which obligation, and its owner |
+| [`operating-model/dpia-template.md`](operating-model/dpia-template.md) | An impact assessment template, with the teen wallet account as a worked example |
+
+It keeps what the law requires apart from what is a design choice. A Data Protection Officer, for example, is required only for a Significant Data Fiduciary (Section 10(2)(a)); every other company needs a published contact who can answer questions about its processing (Section 8(9), Rule 9). Start with [`operating-model/README.md`](operating-model/README.md).
+
+---
+
+## Release 3, Prevent
 
 Release 2 found personal data after it had been stored in the wrong place. Release 3 stops that kind of change before it is made, and catches it if someone makes it anyway.
 
@@ -202,7 +219,7 @@ Each release is published here with release notes and announced on LinkedIn. Tim
 | 1 | Late October 2026 | Foundations, and know what you hold: a register of personal data with its purpose and legal basis, logs that no administrator can erase, and a Mumbai-only guardrail | **Available** |
 | 2 | Early November 2026 | Find: what the company actually holds, compared with what its register says, including Aadhaar and PAN numbers | **Available** |
 | 3 | Mid-November 2026 | Prevent: security safeguards enforced before a change is released, and changes outside the process detected | **Available** |
-| Operating model | Late November 2026 | Who runs it: the governance charter, the privacy office and the DPO's mandate, a RACI for every obligation, and board reporting | **Next** |
+| Operating model | Late November 2026 | Who runs it: the governance charter, the privacy office and the DPO's mandate, a RACI for every obligation, and board reporting | **Available** |
 | 4 | December 2026 | Notice and consent: an itemised notice, specific consent, and proof of what each person agreed to | Planned |
 | 5 | December 2026 | Withdrawal: as easy as consenting, and processing stops, including at vendors | Planned |
 | 6 | January 2027 | Who gives consent: verifiable parental consent, no tracking of children, and consent through a Consent Manager | Planned |

@@ -354,11 +354,11 @@ The plan check and AWS Config cover infrastructure built in the cloud account. P
 |---|---|---|---|---|---|
 | Writing and changing the rules | C | C | R | A | I |
 | Approving a change | A | I | R | C | I |
-| Approving an exception | A | C | C | A | I |
+| Approving an exception | A | C | C | C | I |
 | Dealing with a flagged change | A | I | R | C | I |
 | Independent check that the process is followed | I | I | I | I | A |
 
-A: accountable. R: responsible. C: consulted. I: informed. The CISO and the system owner share accountability for exceptions: one owns the risk, the other the business need.
+A: accountable. R: responsible. C: consulted. I: informed. For exceptions, the system owner decides and the CISO must agree; one person is accountable, as in the operating model's governance charter.
 
 **3. The procedure**
 
