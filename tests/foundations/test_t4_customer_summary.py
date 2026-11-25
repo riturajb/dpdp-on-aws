@@ -4,7 +4,8 @@ Control:          DPDP-Act-S8(1)
 What is checked:  For the test customer C-TEST-0001, the summary lists every category of
                   personal data held, with purpose, legal basis, vendors and retention.
 Pass means:       All nine categories expected for an adult borrower appear, with vendors,
-                  and Aadhaar and PAN are masked.
+                  and Aadhaar and PAN are masked. From Release 4, the notice and consent
+                  records may appear as a tenth.
 Fail means:       The company cannot say what it holds about a person.
 Evidence stored:  Locally (offline) or the evidence bucket (live).
 Who runs it:      Anyone offline; with --live, an engineer profile.
@@ -20,9 +21,14 @@ EXPECTED = {"Identity and KYC", "Contact details", "Marketing preferences", "Loa
             "App and device activity", "Complaints and support requests"}
 
 
+# Release 4: once the test customer has a notice or consent record, the summary also lists it.
+# It is allowed, not required, so the test does not depend on the order the tests run in.
+MAY_ALSO_APPEAR = {"Notice and consent records"}
+
+
 def _assert_summary(rows):
     names = {r["category"] for r in rows}
-    assert names == EXPECTED, names ^ EXPECTED
+    assert EXPECTED <= names and names - EXPECTED <= MAY_ALSO_APPEAR, names ^ EXPECTED
     kyc = next(r for r in rows if r["category"] == "Identity and KYC")
     assert any("XXXX XXXX" in f for f in kyc["fields"]), "Aadhaar is not masked"
     assert kyc["purposes"][0]["shared_with"], "KYC vendor missing"
