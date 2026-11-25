@@ -4,6 +4,38 @@ Every release of DPDP on AWS is listed here, newest first. Each entry states wha
 
 ---
 
+## v0.5.0 · Release 4: Notice and consent · 25 November 2026
+
+### Added
+
+- **The notice, checked against the register** (`tools/notice.py`): the wording is written by people; the data, purposes and recipients it itemises are taken from the register, and the notice cannot be published if the two differ. Every purpose that relies on consent is a separate choice, with its itemised data, what it enables and who receives the data; purposes under Section 7 are listed as such; the links to withdraw consent, exercise rights and complain to the Data Protection Board, and the contact who answers questions (Section 5(1), Rule 3, Section 6(3)). English and Hindi (Section 5(3)). The version name comes from the notice's own SHA-256 fingerprint.
+- **The consent service** (`services/consent/`, `terraform/modules/consent-service`, stacks `workload/consent` and `sandbox/consent`): an AWS Lambda function behind an API Gateway HTTP API that accepts signed requests only (IAM authorisation). It refuses a consent the app reports as ticked in advance, bundled purposes, data a purpose does not need, a Section 7 purpose, a notice that is not current and a language not offered, each refusal naming its provision; a request with any part refused is refused whole (Section 6(1)). Each consent is kept as a locked copy in an S3 bucket with Object Lock (compliance mode in the workload account) and as a row in a DynamoDB ledger that holds the copy's fingerprint (Section 6(10)). The function can add records and never change or delete them; the API's access log is kept for a year (Rule 6(1)(b), (c), (e)).
+- **Proof and fire drill** (`tools/consent_proof.py`, `tools/consent_drill.py`): the company proves any customer's consents using read-only access; a change to the ledger found; deleting a locked copy refused.
+- **Earlier customers** (`tools/old_consents.py`): the Section 5(2) campaign and its report. No message is sent; the deliveries are recorded.
+- **The app's stand-in** (`tools/consent_client.py`): signed requests to the API, including the kinds of request the law does not accept.
+- **Plan-check rule**: every API route requires authorisation (`[R.6(1)(b)]`, `policies/rego/prevent.rego`, with unit tests).
+- **Five tests** (T16 and T17 offline; T18 to T20 live), with evidence records. Twenty-seven tests in total.
+- **Release 4 Guide** (`docs/RELEASE_4_GUIDE.md`), including "Beyond the code", what notice and consent mean for the planned AI assistant, and how a company would run it.
+
+### Changed
+
+- **Register**: a fixed id for each purpose; the Hindi text of each description, purpose and vendor; what each purpose enables; the notice's contact and links; two new stores (`consent-ledger`, `consent-records`) and the category "Notice and consent records".
+- **Customer summary** (`tools/customer_summary.py`) reads the consent records; test T4 accepts them as a tenth category.
+- **GitHub Actions**: the `plan` job also plans and checks the consent stack.
+- `config/aws-config.example`: the profile `dpdp-sandbox-admin`, used only for the clean-room copy of the consent service.
+- README: Release 4 section; the AI assistant in the description of the system; the release plan of 25 November 2026.
+- `scripts/install_conftest.sh` shows a progress bar, retries a slow download, and does nothing when the pinned version is already installed.
+
+---
+
+## Release plan · 25 November 2026
+
+- **AI governance** is added as a companion release with no AWS code, next after Release 4: how Fernleaf Finance (fictional) governs the AI assistant it plans for borrowers, before any agent code exists.
+- The AI assistant becomes two releases: Release 12, built with limits, and Release 13, attacked and drilled. Prove moves to Release 14, so that the final release tests every control, including the assistant's. The assistant runs in the workload account, with its model called through Amazon Bedrock's India-only route.
+- Releases 12 to 14 are now expected in February and March 2027. The complete system is still planned well before the main obligations apply on 13 May 2027.
+
+---
+
 ## v0.4.1 · Operating model · 18 November 2026
 
 ### Added

@@ -6,7 +6,7 @@ Most organisations still meet their DPDP obligations through policies, spreadshe
 
 This project turns the obligations of the Act and the Rules into controls that run in an AWS account, act automatically, and retain evidence of what they did. Every part is published here with the legal provision it addresses and the steps to run it.
 
-> **Status:** Release 1 (Foundations, and know what you hold), Release 2 (Find), Release 3 (Prevent) and the operating model are available. Release 4 (Notice and consent) is expected in December 2026. The main DPDP obligations apply from **13 May 2027**.
+> **Status:** Release 1 (Foundations, and know what you hold), Release 2 (Find), Release 3 (Prevent), the operating model and Release 4 (Notice and consent) are available. Next: AI governance, a companion release, then Release 5 (Withdrawal), both expected in December 2026. The main DPDP obligations apply from **13 May 2027**.
 
 ---
 
@@ -15,13 +15,15 @@ This project turns the obligations of the Act and the Rules into controls that r
 | Part | What it will do | Main DPDP provisions |
 |---|---|---|
 | **Find** | Scan databases, storage buckets, logs and backups daily for personal data, including Aadhaar and PAN numbers, and flag any location the register does not list. | Act s.8(5); Rule 6(1)(a) |
+| **Notice and consent** | Publish a notice in English and Hindi only after it is checked against the register and Rule 3. Record consent only when it is specific, by a clear affirmative action and limited to the data needed, and keep a locked copy of every consent as proof. Give the notice to customers who consented earlier. | Act s.5(1), s.5(2), s.6(1), s.6(10); Rule 3 |
 | **Prevent** | Check every infrastructure change before release. Block data stores that do not say whether they hold personal data, public buckets, personal data that cannot be recovered, logs kept for less than one year, and resources outside Mumbai. Detect changes made outside the process. | Act s.8(1); Rule 6(1)(b), (d), (e), (g) |
 | **Enforce** | Keep consent as a tamper-evident record that systems check before using personal data. When consent is withdrawn, stop marketing, SMS, WhatsApp and call-centre feeds automatically. Exclude children's accounts from tracking, profiling and targeted advertising. | Act s.6(4), s.6(6), s.6(10), s.9 |
 | **Erase** | Delete what can be deleted. Seal what a law requires to be kept: restricted, every read logged, each record with its own expiry date. Keep backups for weeks, not years, and re-apply every erasure after any restore. Verify by searching for a deleted test customer. | Act s.8(7), s.12(3); Rule 8(3) |
 | **Respond** | Draft customer communications from system records and send them only after human approval. Start the breach clock from a security alert, identify affected customers, and draft the 72-hour report to the Data Protection Board. | Act s.8(6), s.13; Rule 7, Rule 14 |
+| **AI assistant** | Add an assistant for borrowers, governed like every other control: it tells people they are talking to an AI, its model runs in India, its tools are limited by policy, a person approves any high-risk action, every action is recorded, and attacks on it are tested. It makes no credit decisions. | Act s.5, s.6, s.8(1), s.8(5); Rule 6 |
 | **Prove** | Test controls daily. Protect results against alteration, map them to DPDP and ISO/IEC 27001, and make them reproducible by auditors. Give management a single view of open gaps, penalties and deadlines. | Act s.8(1), s.8(5); Rule 6(1)(g) |
 
-An AI assistant will answer questions from the evidence and prepare drafts. It will not make compliance decisions. Every decision remains with a named person.
+Every decision remains with a named person. No control, and no AI, makes a compliance decision on its own.
 
 ---
 
@@ -42,7 +44,44 @@ Fernleaf Finance does not exist. Any resemblance to a real company is unintended
 
 ---
 
-## Available now: the operating model
+## Release 4, Notice and consent
+
+Releases 1 to 3 recorded what Fernleaf Finance (fictional) holds and kept it safe. Release 4 deals with the moment a person is asked for her consent: what she is told, what she agrees to, and how the company proves it later.
+
+### What it proves
+
+| DPDP provision | What the system does | Test |
+|---|---|---|
+| Section 5(1), with Section 5(3), Section 6(3) and Rule 3 | The notice is complete on its own: itemised data, each purpose, what it enables, the links to withdraw consent, exercise rights and complain to the Board, and the contact, in English and Hindi. A consent can only cite the current notice | T16, T17 |
+| Section 6(1) | Only consent that is specific, by a clear affirmative action, informed by the notice, and limited to the data the purpose needs is recorded; anything else is refused, whole | T17, T18 |
+| Section 6(10) | The company can prove each consent from a locked copy nobody can change; producing the proof needs only read-only access, a change to the ledger is found, and the locked copy cannot be deleted | T19 |
+| Section 5(2) | Every customer who consented before the notice existed is given it, and the company can show who has been | T20 |
+| Rule 6(1)(b), (c) | The consent service accepts signed requests only, and every request is in an access log kept for a year, with the same reference as the record it made | T18 |
+
+### How it works
+
+- **The notice is written by people and checked against the register** ([`tools/notice.py`](tools/notice.py)). The Privacy Lead writes the wording and General Counsel approves it. The lists the notice must itemise, the data each purpose uses, what it enables and who receives the data, are taken from the register, and a notice that differs from the register cannot be published. Every purpose that relies on consent is a separate choice. The version name comes from the notice's own SHA-256 fingerprint, so a version always means one exact text.
+- **A consent service checks every request** ([`services/consent/`](services/consent/), deployed by [`terraform/modules/consent-service`](terraform/modules/consent-service)): an AWS Lambda function behind an API Gateway HTTP API that accepts signed requests only. It refuses a consent the app reports as ticked in advance, several purposes bundled into one choice, data the purpose does not need, a purpose processed under Section 7, and a notice that is not the current one. Each refusal names its provision, and a request is accepted whole or refused whole.
+- **Every consent is kept twice**: as a locked copy in an S3 bucket with Object Lock in compliance mode, which nobody can change or delete for a year, and as a row in a DynamoDB ledger that points to it. With [`tools/consent_proof.py`](tools/consent_proof.py) the company proves any customer's consents using read-only access, so producing the proof can change nothing, and anyone checking it can be given the same access; a change made to the ledger shows up as a difference from the locked copy.
+- **Earlier customers** ([`tools/old_consents.py`](tools/old_consents.py)): the open accounts whose consent predates the notice are given it, and a report shows who is still waiting.
+
+A fire drill changes a consent in the ledger, shows the proof catching it, puts it back, and shows that deleting the locked copy is refused.
+
+### Beyond the code
+
+The [Release 4 Guide](docs/RELEASE_4_GUIDE.md) also covers what the code cannot show: who approves the notice text, how consent screens are reviewed for boxes ticked in advance and bundled choices, how long the proof is kept, the evidence to keep, effort, consent collected at branches, by call centres and on paper, and what notice and consent mean for the AI assistant Fernleaf plans for borrowers.
+
+### Limitations
+
+- There is no app or consent screen, and the service cannot see one. It records how consent was given as the app reports it: a consent reported as ticked in advance is refused, but an app that misreports a tick would not be caught by the service. Whether a box was empty when the screen opened, and whether the app reports it truthfully, is shown by reviewing every consent screen and testing the app.
+- Withdrawal comes in Release 5, and children's accounts, with verifiable parental consent, in Release 6.
+- English and Hindi only; another language of the Eighth Schedule needs its text in the register and its wording in `tools/notice.py`.
+- Anyone in the account who may call the API can record a consent for any customer number; in this build the engineer profile plays the app. A company lets only the app's back end call it.
+- The ledger can be changed by engineers: such a change is found by the proof, not prevented. The locked copies cannot be changed by anyone.
+
+---
+
+## The operating model
 
 Releases 1 to 3 built controls that run in an AWS account. Each ended with "Beyond the code": the decisions and owners the code depends on. The operating model brings them together: who is accountable for DPDP compliance, who decides what, and what reaches the board of directors. It contains no AWS code.
 
@@ -220,7 +259,8 @@ Each release is published here with release notes and announced on LinkedIn. Tim
 | 2 | Early November 2026 | Find: what the company actually holds, compared with what its register says, including Aadhaar and PAN numbers | **Available** |
 | 3 | Mid-November 2026 | Prevent: security safeguards enforced before a change is released, and changes outside the process detected | **Available** |
 | Operating model | Late November 2026 | Who runs it: the governance charter, the privacy office and the DPO's mandate, a RACI for every obligation, and board reporting | **Available** |
-| 4 | December 2026 | Notice and consent: an itemised notice, specific consent, and proof of what each person agreed to | Planned |
+| 4 | Late November 2026 | Notice and consent: an itemised notice, specific consent, and proof of what each person agreed to | **Available** |
+| AI governance | December 2026 | Governing an AI assistant before it is built: an AI register of agents, tools and controls, checked like the personal data register; owners; an impact assessment; the model inventory entry; and the decisions to take first. No AWS code | Planned |
 | 5 | December 2026 | Withdrawal: as easy as consenting, and processing stops, including at vendors | Planned |
 | 6 | January 2027 | Who gives consent: verifiable parental consent, no tracking of children, and consent through a Consent Manager | Planned |
 | 7 | January 2027 | Retention and conflicts with other laws: the legal reason and expiry date for every record | Planned |
@@ -228,8 +268,9 @@ Each release is published here with release notes and announced on LinkedIn. Tim
 | 9 | January 2027 | Breach response: the 72-hour clock, affected customers and draft notices | Planned |
 | 10 | January 2027 | Rights and grievances: requests and grievances tracked against their deadlines | Planned |
 | 11 | February 2027 | Vendors: which vendor holds which data, and their erasure confirmations | Planned |
-| 12 | February 2027 | Prove: daily control tests, auditor reperformance and a management view | Planned |
-| 13 | February 2027 | AI assistant with defined limits | Planned |
+| 12 | February 2027 | AI assistant, built with limits: a borrower assistant whose model runs in India, tools allowed or forbidden by policy, a person's approval for high-risk actions, and a record of every action | Planned |
+| 13 | March 2027 | AI assistant, attacked: prompt injection, tool misuse and data leakage tested as controls, and drills to restrict or stop the assistant | Planned |
+| 14 | March 2027 | Prove: daily control tests, auditor reperformance and a management view, covering every release including the assistant | Planned |
 
 The complete system is planned to be tested end to end and tagged v1.0.0 well before the main obligations apply on 13 May 2027.
 
