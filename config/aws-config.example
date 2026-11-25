@@ -56,3 +56,12 @@ sso_account_id = 444444444444
 sso_role_name = PlatformEngineer
 region = ap-south-1
 output = json
+
+# Release 4: BreakGlassAdmin in the sandbox, used only to create and remove the clean-room copy
+# of the consent service, which creates an IAM role (PlatformEngineer cannot, by design).
+[profile dpdp-sandbox-admin]
+sso_session = dpdp
+sso_account_id = 444444444444
+sso_role_name = BreakGlassAdmin
+region = ap-south-1
+output = json

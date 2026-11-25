@@ -33,7 +33,9 @@ OUT="$ROOT/notes/plans/${NAME}-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$OUT"
 
 # A stack is initialised once; its backend settings come from backend.hcl where there is one.
-if [ ! -d "$STACK/.terraform" ]; then
+# The test is the providers folder, not .terraform alone: an init stopped part-way (Ctrl-C)
+# leaves .terraform without providers, and the next run must initialise again.
+if [ ! -d "$STACK/.terraform/providers" ]; then
   if [ -f "$STACK/backend.hcl" ]; then
     terraform -chdir="$STACK" init -input=false -backend-config=backend.hcl >/dev/null
   else
