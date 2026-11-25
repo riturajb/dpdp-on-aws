@@ -4,7 +4,8 @@
 #              passes, and each kind of non-compliant change is denied with the right provision.
 # Why:         A rule that has never been seen to fail could be broken without anyone noticing.
 # Who runs it: Anyone, with no AWS access: conftest verify --policy policies/rego
-# When:        Release 3, Step 1 and Step 7; after any change to prevent.rego.
+# When:        Release 3, Step 1 and Step 7; after any change to prevent.rego. The API tests
+#              were added in Release 4.
 # Changes AWS: No.
 
 package main
@@ -89,4 +90,19 @@ test_region_from_variable_is_denied if {
 test_deleted_resources_are_not_checked if {
 	gone := {"address": "aws_s3_bucket.old", "mode": "managed", "type": "aws_s3_bucket", "change": {"actions": ["delete"], "after": null}}
 	count(deny) == 0 with input as {"configuration": {"provider_config": provider_mumbai}, "resource_changes": [gone]} with data.stores as register
+}
+
+test_open_api_route_is_denied if {
+	r := rc("aws_apigatewayv2_route", "aws_apigatewayv2_route.open", {"route_key": "POST /consents", "authorization_type": "NONE"})
+	denied_with({"configuration": {"provider_config": provider_mumbai}, "resource_changes": [r]}, "[R.6(1)(b)]")
+}
+
+test_signed_api_route_passes if {
+	r := rc("aws_apigatewayv2_route", "aws_apigatewayv2_route.signed", {"route_key": "POST /consents", "authorization_type": "AWS_IAM"})
+	count(deny) == 0 with input as {"configuration": {"provider_config": provider_mumbai}, "resource_changes": [r]} with data.stores as register
+}
+
+test_open_rest_method_is_denied if {
+	m := rc("aws_api_gateway_method", "aws_api_gateway_method.open", {"http_method": "GET", "authorization": "NONE"})
+	denied_with({"configuration": {"provider_config": provider_mumbai}, "resource_changes": [m]}, "[R.6(1)(b)]")
 }

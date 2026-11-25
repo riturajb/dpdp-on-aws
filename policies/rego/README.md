@@ -1,4 +1,4 @@
-# Plan-check rules (Release 3, Prevent)
+# Plan-check rules (Release 3, Prevent; extended in Release 4)
 
 Every infrastructure change is planned with Terraform, and the plan is checked against these rules before anything is applied. A plan that breaks a rule is stopped; nothing reaches AWS.
 
@@ -12,7 +12,7 @@ Every infrastructure change is planned with Terraform, and the plan is checked a
 | Message starts with | Rule | Provision |
 |---|---|---|
 | `[s.8(1)]` | Every bucket and table carries `DataClass` (`personal` or `none`); a personal store carries `RegisterStore`, naming an entry in `register/personal-data-register.yaml` | Act, Section 8(1) |
-| `[R.6(1)(b)]` | Every bucket has a fixed name and a public access block with all four settings on | Rules, Rule 6(1)(b) |
+| `[R.6(1)(b)]` | Every bucket has a fixed name and a public access block with all four settings on; every API route requires authorisation: `AWS_IAM`, `JWT` or a custom authoriser (Release 4) | Rules, Rule 6(1)(b) |
 | `[R.6(1)(d)]` | Personal buckets are versioned; personal tables have point-in-time recovery | Rules, Rule 6(1)(d) |
 | `[R.6(1)(e)]` | Log groups keep logs for at least 365 days, or never expire | Rules, Rule 6(1)(e) |
 | `[Mumbai only]` | Every AWS provider sets `region = "ap-south-1"` as a fixed value | Design choice of this build |
@@ -31,4 +31,4 @@ The rules read the plan as JSON (`terraform show -json`) and the register as dat
 
 ## Changing a rule
 
-A rule changes through the same process as any other change: a pull request, with a unit test in `prevent_test.rego` that fails without the change and passes with it, reviewed and approved by someone other than the author, with the DPO consulted. The same rule must also be changed in AWS Config (`terraform/modules/detective-controls`), so that the check before a change and the check after it stay the same.
+A rule changes through the same process as any other change: a pull request, with a unit test in `prevent_test.rego` that fails without the change and passes with it, reviewed and approved by someone other than the author, with the DPO consulted. The same rule must also be changed in AWS Config (`terraform/modules/detective-controls`), so that the check before a change and the check after it stay the same. One exception: AWS Config has no managed rule for the authorisation of HTTP API routes, so the API rule of Release 4 is checked before a change only.
