@@ -69,12 +69,27 @@ class LiveSource:
         name = self.names[store]
         if self.types[store] == "dynamodb_table":
             return self.dynamo.Table(name).query(KeyConditionExpression=Key("customer_id").eq(cid))["Items"]
+        if store == "consent-records":
+            return self._consent_copies(name, cid)
         key = {"bureau-reports": f"bureau/{cid}.json", "app-events": f"events/{cid}.jsonl"}[store]
         try:
             body = self.s3.get_object(Bucket=name, Key=key)["Body"].read().decode()
         except self.s3.exceptions.NoSuchKey:
             return []
         return [json.loads(line) for line in body.splitlines() if line.strip()]
+
+    def _consent_copies(self, bucket: str, cid: str) -> list[dict]:
+        """Release 4: the locked copies of the customer's notice and consent records, one JSON
+        object each, under consents/<customer>/ and notice-deliveries/<customer>/."""
+        out = []
+        for folder in ("consents", "notice-deliveries"):
+            pages = self.s3.get_paginator("list_objects_v2").paginate(
+                Bucket=bucket, Prefix=f"{folder}/{cid}/")
+            for page in pages:
+                for obj in page.get("Contents", []):
+                    body = self.s3.get_object(Bucket=bucket, Key=obj["Key"])["Body"].read()
+                    out.append(json.loads(body))
+        return out
 
 
 def kept_until(retention: dict, customer: dict, records: list[dict]) -> str:
@@ -141,6 +156,7 @@ SHORT_CATEGORY = {
     "Wallet transactions": "Wallet payments",
     "App and device activity": "App activity",
     "Complaints and support requests": "Complaints",
+    "Notice and consent records": "Consent records",
 }
 
 

@@ -1,0 +1,5 @@
+# Copy to backend.hcl (ignored by Git) and set the state bucket created by
+# scripts/bootstrap_state_bucket.sh for this account. This stack creates an IAM role, so it is
+# applied as BreakGlassAdmin (dpdp-sandbox-admin), not as PlatformEngineer.
+bucket  = "dpdp-tfstate-123456789012"
+profile = "dpdp-sandbox-admin"

@@ -13,10 +13,47 @@
 # Allowed legal_basis values:
 #   consent                     Section 6
 #   "s7(a)" ... "s7(i)"         Section 7, the clause named
+#
+# Release 4 (Notice and consent) takes the notice's itemised lists from this file, and its
+# check (tools/notice.py) refuses a notice that differs from the register. It reads:
+#   notice                  the contact, the links and the languages of the notice
+#   *_hi                    the Hindi text next to each English text (Section 5(3), 6(3))
+#   purposes[].id           a fixed identifier for each purpose; a consent is recorded
+#                           against this identifier, so it must never be reused for a
+#                           different purpose
+#   purposes[].enables      the goods or services the purpose makes possible (Rule 3(b)(ii))
+#   separate_choice: false  described in the notice, but not asked as a separate choice
+#                           (used only for the record of consent itself)
+# Categories with children: true are left out of the notice for adults. Notice and consent
+# for children's accounts, given by a parent, are built in Release 6.
 
 schema_version: 1
 company: Fernleaf Finance (fictional lending and wallet company)
+company_hi: फ़र्नलीफ़ फ़ाइनेंस (काल्पनिक ऋण और वॉलेट कंपनी)
 region: ap-south-1
+
+# The notice (Section 5(1), Rule 3). Links use the reserved domain fernleaf.example, which can
+# never belong to anyone. A real company gives its own website and app links here.
+notice:
+  languages: [en, hi]
+  contact:
+    # Section 6(3) and Rule 9: the person who answers questions about processing. Fernleaf is
+    # not a Significant Data Fiduciary, so this is its Privacy Lead, not a Data Protection
+    # Officer (operating model, privacy-office-and-dpo-mandate.md).
+    role: Privacy Lead
+    role_hi: गोपनीयता प्रमुख
+    web_form: "https://fernleaf.example/privacy/contact"
+    postal: "Privacy Lead, Fernleaf Finance (fictional), Mumbai"
+    postal_hi: "गोपनीयता प्रमुख, फ़र्नलीफ़ फ़ाइनेंस (काल्पनिक), मुंबई"
+  links:
+    # Rule 3(c): the website or app link where the person can withdraw consent, exercise her
+    # rights and find how to complain to the Data Protection Board.
+    website: "https://fernleaf.example"
+    app_path: "Profile > Privacy"
+    app_path_hi: "प्रोफ़ाइल > गोपनीयता"
+    withdraw: "https://fernleaf.example/privacy/consents"
+    rights: "https://fernleaf.example/privacy/rights"
+    complaint: "https://fernleaf.example/privacy/complaints"
 
 stores:
   - id: customers-db
@@ -37,35 +74,48 @@ stores:
   - id: app-events
     type: s3_bucket
     name: dpdp-app-events-{account_id}
+  # Release 4: the record of each notice given and each consent received (Section 6(10)).
+  - id: consent-ledger
+    type: dynamodb_table
+    name: dpdp-consent-ledger
+  - id: consent-records
+    type: s3_bucket
+    name: dpdp-consent-records-{account_id}
 
 vendors:
   - id: kyc-provider
     name: KYC verification provider
+    name_hi: केवाईसी सत्यापन प्रदाता
     role: Data Processor
     location: India
     contract_clause: "KYC services agreement 2026, clause 9 (security safeguards)"
   - id: credit-bureau
     name: Credit information company
+    name_hi: क्रेडिट सूचना कंपनी
     role: Data Fiduciary receiving data under its own licence
     location: India
     contract_clause: "Credit information membership agreement, clause 12"
   - id: payment-gateway
     name: Payment gateway
+    name_hi: भुगतान गेटवे
     role: Data Processor
     location: India
     contract_clause: "Payment services agreement 2026, clause 7"
   - id: sms-whatsapp-provider
     name: SMS and WhatsApp messaging provider
+    name_hi: एसएमएस और व्हाट्सऐप संदेश प्रदाता
     role: Data Processor
     location: India
     contract_clause: "Messaging services agreement 2026, clause 8"
   - id: collections-call-centre
     name: Outsourced collections call centre
+    name_hi: वसूली के लिए बाहरी कॉल सेंटर
     role: Data Processor
     location: India
     contract_clause: "Collections services agreement 2026, clause 11"
   - id: email-provider
     name: Email delivery service
+    name_hi: ईमेल वितरण सेवा
     role: Data Processor
     location: Ireland
     contract_clause: "Email services agreement 2026, clause 6"
@@ -74,10 +124,15 @@ data_categories:
   - id: identity-kyc
     name: Identity and KYC
     notice_description: Your name, date of birth, Aadhaar number and PAN
+    notice_description_hi: आपका नाम, जन्म तिथि, आधार संख्या और पैन
     fields: [full_name, date_of_birth, aadhaar_number, pan]
     stores: [customers-db]
     purposes:
-      - purpose: Verify your identity before opening a wallet or giving a loan
+      - id: kyc-verification
+        purpose: Verify your identity before opening a wallet or giving a loan
+        purpose_hi: वॉलेट खोलने या ऋण देने से पहले आपकी पहचान का सत्यापन करना
+        enables: Opening your wallet and considering your loan application
+        enables_hi: आपका वॉलेट खोलना और आपके ऋण आवेदन पर विचार करना
         legal_basis: consent
         shared_with: [kyc-provider]
     retention:
@@ -90,10 +145,15 @@ data_categories:
   - id: contact
     name: Contact details
     notice_description: Your mobile number, email address and postal address
+    notice_description_hi: आपका मोबाइल नंबर, ईमेल पता और डाक पता
     fields: [mobile, email, address]
     stores: [customers-db]
     purposes:
-      - purpose: Send messages about your account, wallet and loans
+      - id: account-messages
+        purpose: Send messages about your account, wallet and loans
+        purpose_hi: आपके खाते, वॉलेट और ऋण के बारे में संदेश भेजना
+        enables: Messages about payments, due dates and changes to your account
+        enables_hi: भुगतान, देय तिथियों और आपके खाते में बदलाव के बारे में संदेश
         legal_basis: consent
         shared_with: [sms-whatsapp-provider, email-provider]
     retention:
@@ -106,10 +166,15 @@ data_categories:
   - id: marketing-preferences
     name: Marketing preferences
     notice_description: Whether you agreed to receive offers, and through which channel
+    notice_description_hi: क्या आपने ऑफ़र प्राप्त करने के लिए सहमति दी है, और किस माध्यम से
     fields: [marketing_opt_in]
     stores: [customers-db]
     purposes:
-      - purpose: Send you offers for loans and wallet services
+      - id: marketing-offers
+        purpose: Send you offers for loans and wallet services
+        purpose_hi: आपको ऋण और वॉलेट सेवाओं के ऑफ़र भेजना
+        enables: Offers for loans and wallet services by SMS or WhatsApp
+        enables_hi: एसएमएस या व्हाट्सऐप द्वारा ऋण और वॉलेट सेवाओं के ऑफ़र
         legal_basis: consent
         shared_with: [sms-whatsapp-provider]
     retention:
@@ -124,7 +189,8 @@ data_categories:
     fields: [parent_customer_id]
     stores: [customers-db]
     purposes:
-      - purpose: Run a prepaid wallet for a child under a parent's supervision
+      - id: teen-wallet
+        purpose: Run a prepaid wallet for a child under a parent's supervision
         legal_basis: consent
         shared_with: [payment-gateway]
     retention:
@@ -137,10 +203,15 @@ data_categories:
   - id: loan-application
     name: Loan application
     notice_description: The loan amount you asked for, your income and your employer
+    notice_description_hi: आपके द्वारा मांगी गई ऋण राशि, आपकी आय और आपका नियोक्ता
     fields: [amount, income, employer, status, disbursed_on]
     stores: [loans-db]
     purposes:
-      - purpose: Assess your loan application and service the loan
+      - id: loan-assessment
+        purpose: Assess your loan application and service the loan
+        purpose_hi: आपके ऋण आवेदन का मूल्यांकन करना और ऋण खाते का संचालन करना
+        enables: A decision on your loan, and the loan account if it is approved
+        enables_hi: आपके ऋण पर निर्णय, और स्वीकृत होने पर ऋण खाता
         legal_basis: consent
         shared_with: [credit-bureau]
     retention:
@@ -153,10 +224,15 @@ data_categories:
   - id: repayments-collections
     name: Repayments and collections
     notice_description: Your repayments, any overdue amounts and calls about them
+    notice_description_hi: आपकी किस्तों का भुगतान, कोई बकाया राशि और उनके बारे में की गई कॉल
     fields: [repayments, days_overdue, collection_calls]
     stores: [loans-db]
     purposes:
-      - purpose: Collect repayments that are due
+      - id: loan-collections
+        purpose: Collect repayments that are due
+        purpose_hi: देय किस्तों की वसूली करना
+        enables: Reminders and calls about instalments that are due
+        enables_hi: देय किस्तों के बारे में अनुस्मारक और कॉल
         legal_basis: consent
         shared_with: [collections-call-centre, sms-whatsapp-provider]
     retention:
@@ -169,10 +245,15 @@ data_categories:
   - id: credit-bureau-report
     name: Credit bureau report
     notice_description: Your credit score and credit history from a credit information company
+    notice_description_hi: क्रेडिट सूचना कंपनी से आपका क्रेडिट स्कोर और क्रेडिट इतिहास
     fields: [score, accounts, pulled_on]
     stores: [bureau-reports]
     purposes:
-      - purpose: Assess whether you can repay a loan
+      - id: credit-check
+        purpose: Assess whether you can repay a loan
+        purpose_hi: यह आकलन करना कि आप ऋण चुका सकते हैं या नहीं
+        enables: A decision on your loan application
+        enables_hi: आपके ऋण आवेदन पर निर्णय
         legal_basis: consent
         shared_with: [credit-bureau]
     retention:
@@ -185,10 +266,15 @@ data_categories:
   - id: wallet-transactions
     name: Wallet transactions
     notice_description: Payments made from your wallet, the merchant and the time
+    notice_description_hi: आपके वॉलेट से किए गए भुगतान, व्यापारी और समय
     fields: [amount, merchant, txn_time]
     stores: [wallet-db]
     purposes:
-      - purpose: Run your prepaid wallet and process payments
+      - id: wallet-payments
+        purpose: Run your prepaid wallet and process payments
+        purpose_hi: आपका प्रीपेड वॉलेट चलाना और भुगतान संसाधित करना
+        enables: Payments to merchants from your wallet
+        enables_hi: आपके वॉलेट से व्यापारियों को भुगतान
         legal_basis: consent
         shared_with: [payment-gateway]
     retention:
@@ -201,10 +287,15 @@ data_categories:
   - id: app-events
     name: App and device activity
     notice_description: Screens you open in the app, your device identifier and IP address
+    notice_description_hi: ऐप में आपके द्वारा खोली गई स्क्रीन, आपके डिवाइस की पहचान और आईपी पता
     fields: [event_time, event, device_id, ip]
     stores: [app-events]
     purposes:
-      - purpose: Detect fraud and unauthorised access to your account
+      - id: fraud-detection
+        purpose: Detect fraud and unauthorised access to your account
+        purpose_hi: धोखाधड़ी और आपके खाते तक अनधिकृत पहुंच का पता लगाना
+        enables: Protection of your account against fraud and misuse
+        enables_hi: धोखाधड़ी और दुरुपयोग से आपके खाते की सुरक्षा
         legal_basis: consent
         shared_with: []
     retention:
@@ -218,10 +309,15 @@ data_categories:
   - id: support-tickets
     name: Complaints and support requests
     notice_description: What you tell us when you raise a complaint or a support request
+    notice_description_hi: शिकायत या सहायता अनुरोध करते समय आप हमें जो बताते हैं
     fields: [channel, text, created_at]
     stores: [tickets-db]
     purposes:
-      - purpose: Resolve your complaint or request
+      - id: complaint-handling
+        purpose: Resolve your complaint or request
+        purpose_hi: आपकी शिकायत या अनुरोध का समाधान करना
+        enables: Answers to your complaints and requests
+        enables_hi: आपकी शिकायतों और अनुरोधों के उत्तर
         legal_basis: "s7(a)"
         shared_with: [email-provider]
     retention:
@@ -230,4 +326,35 @@ data_categories:
       date_field: created_at
       legal_reason: Rule 8(3), at least one year from the last processing
       confirmed: true
+    children: false
+
+  # Release 4. The proof that a notice was given and a consent received (Section 6(10)). The
+  # record is made as part of each consent, so the notice describes it but does not ask for it
+  # as a separate choice. This is the model company's recorded decision; a real company records
+  # its own with its counsel. Retention is not yet confirmed: the proof must last at least as
+  # long as the processing that relies on the consent.
+  - id: consent-records
+    name: Notice and consent records
+    notice_description: >-
+      A record of each notice we gave you and each consent you gave: the purpose, the notice
+      version, the language, how you gave it and when
+    notice_description_hi: >-
+      हमने आपको जो प्रत्येक सूचना दी और आपने जो प्रत्येक सहमति दी, उसका रिकॉर्ड: उद्देश्य,
+      सूचना का संस्करण, भाषा, आपने सहमति कैसे दी और कब
+    fields: [purpose_id, notice_version, language, channel, action, recorded_at]
+    stores: [consent-ledger, consent-records]
+    purposes:
+      - id: consent-proof
+        purpose: Keep proof of the notice you were given and the consents you gave
+        purpose_hi: आपको दी गई सूचना और आपकी सहमतियों का प्रमाण रखना
+        enables: A record you can ask to see, and that we can show the Data Protection Board
+        enables_hi: एक रिकॉर्ड जिसे आप देखने के लिए मांग सकते हैं, और जिसे हम डेटा संरक्षण बोर्ड को दिखा सकते हैं
+        legal_basis: consent
+        separate_choice: false
+        shared_with: []
+    retention:
+      rule: after_account_closure
+      days: 1826
+      legal_reason: Section 6(10), proof of notice and consent, kept as long as the records it supports
+      confirmed: false
     children: false

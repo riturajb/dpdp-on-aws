@@ -146,7 +146,9 @@ jobs:
         if: env.HAS_ROLE == 'true'
         run: |
           fail=0
-          for d in terraform/live/workload/baseline terraform/live/workload/model-company terraform/live/workload/detective; do
+          # The consent stack (Release 4) is planned like the others; its archive provider packs
+          # the function's code on the runner and makes no AWS call.
+          for d in terraform/live/workload/baseline terraform/live/workload/model-company terraform/live/workload/detective terraform/live/workload/consent; do
             echo "::group::$d"
             terraform -chdir="$d" init -input=false -backend-config="bucket=dpdp-tfstate-${ACCOUNT_ID}" > /dev/null
             terraform -chdir="$d" plan -input=false -lock=false -out=tfplan > /dev/null

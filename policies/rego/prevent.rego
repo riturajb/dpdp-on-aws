@@ -14,7 +14,8 @@
 # Each message starts with the provision it serves, so a blocked change explains itself:
 #   [s.8(1)]       every data store says whether it holds personal data, and personal stores
 #                  are in the register
-#   [R.6(1)(b)]    no bucket can be made public
+#   [R.6(1)(b)]    no bucket can be made public, and no API route can be called without
+#                  authorisation (Release 4)
 #   [R.6(1)(d)]    personal stores can be recovered: versioning on buckets, point-in-time
 #                  recovery on tables
 #   [R.6(1)(e)]    log groups are kept for at least one year
@@ -111,6 +112,26 @@ public_access_blocked(name) if {
 	a.block_public_policy == true
 	a.ignore_public_acls == true
 	a.restrict_public_buckets == true
+}
+
+# Release 4: every API route requires the caller to sign in. An HTTP API route
+# (aws_apigatewayv2_route) must use AWS_IAM, JWT or a custom authoriser; a REST API method
+# (aws_api_gateway_method) must not be NONE. An open route would let anyone on the internet
+# reach the code behind it, and the personal data it handles.
+auth_types := {"AWS_IAM", "JWT", "CUSTOM"}
+
+deny contains msg if {
+	some r in resources
+	r.type == "aws_apigatewayv2_route"
+	not object.get(after(r), "authorization_type", "NONE") in auth_types
+	msg := sprintf("[R.6(1)(b)] %s (%s) can be called without authorisation. Every API route must require signed or authenticated requests.", [r.address, object.get(after(r), "route_key", "unknown route")])
+}
+
+deny contains msg if {
+	some r in resources
+	r.type == "aws_api_gateway_method"
+	object.get(after(r), "authorization", "NONE") == "NONE"
+	msg := sprintf("[R.6(1)(b)] %s can be called without authorisation. Every API method must require signed or authenticated requests.", [r.address])
 }
 
 # ---------------------------------------------------------------- Rule 6(1)(d)
