@@ -39,6 +39,7 @@ This charter sets out who is accountable for the company's compliance with the D
 | Chief executive (CEO or MD) | The compliance programme as a whole (Section 8(1)); approving intimations of a personal data breach; deciding escalations | Chief Executive Officer |
 | Privacy Lead | Running the programme day to day; the personal data register; notices, consent, rights and grievances; preparing breach intimations; chairing the privacy committee. Also the person whose contact details are published under Section 8(9) and Rule 9 | Head of Privacy |
 | Chief Information Security Officer (CISO) | Security safeguards (Section 8(5), Rule 6(1)) and their effectiveness (Rule 6(1)(g)) | Chief Information Security Officer |
+| Chief Risk Officer | Model risk: the risk tier of each AI system and model, independent validation before deployment and after change, and approval to deploy or restart (RBI draft guidance on model risk management, 24 June 2026, not final). Added with the AI governance release (`ai-governance/`) | Chief Risk Officer |
 | Business owners | The processing in their business line: its purpose, its legal basis, and the accuracy of the register for their systems | Heads of Lending, Wallet, Collections, Marketing and Customer Service; the Head of HR for employee data |
 | Head of Internal Audit | An independent check, at least once a year, that this charter works as written | Head of Internal Audit, reporting to the Audit Committee |
 
@@ -53,12 +54,12 @@ Recommended design; not required by the Act.
 | Item | Fernleaf Finance |
 |---|---|
 | Chair | Privacy Lead |
-| Members | CISO, Chief Technology Officer, General Counsel and Company Secretary, the five business owners, Head of HR, Head of Procurement |
+| Members | CISO, Chief Technology Officer, Chief Risk Officer, General Counsel and Company Secretary, the five business owners, Head of HR, Head of Procurement |
 | Attends, without a vote | Head of Internal Audit |
 | Meets | Monthly, and within one working day of a personal data breach |
 | Quorum | The chair, the CISO, the General Counsel, and the business owner of every item on the agenda |
 | Records | Minutes with each decision, its owner and its date, kept as evidence for three years |
-| Standing agenda | Open gaps against the Obligations Matrix; changes to the register; exceptions granted and expiring; changes outside the process flagged by detection (Release 3); rights requests and grievances against their time limits; vendors added or changed; incidents |
+| Standing agenda | Open gaps against the Obligations Matrix; changes to the register; changes to the AI register and its open decisions; exceptions granted and expiring; changes outside the process flagged by detection (Release 3); rights requests and grievances against their time limits; vendors added or changed; incidents |
 
 ---
 
@@ -81,6 +82,12 @@ Each decision has one decider: a named role, or the privacy committee. "Must agr
 | Replying to a request for information from the Government | General Counsel | (none) | Privacy Lead, CTO | Register of Government requests | Act s.36; Rule 23 |
 | A voluntary undertaking to the Data Protection Board, or an appeal against its order | CEO | Board of directors | General Counsel, Privacy Lead | Board minutes | Act s.29, s.32 |
 | Relying on an exemption under Section 17 | General Counsel | Privacy Lead | Business owner | Register of exemptions relied on | Act s.17 |
+| A new AI system, or a new use of an existing one | Business owner | Privacy Lead, CISO and Chief Risk Officer | CTO, General Counsel | AI register; impact assessment; committee minutes | Act s.4, s.8(1), s.8(5) |
+| What an AI system may do: its tools, and which actions a person approves | Business owner | Chief Risk Officer and Privacy Lead | CISO, CTO | AI register | Act s.8(1), s.8(5) |
+| The risk tier of an AI system or model, and deploying it after validation | Chief Risk Officer | (none) | Business owner, CTO | AI register; validation report | RBI draft guidance on model risk management |
+| Suspending an AI system (read-only or halt) | CISO; the business owner may also trigger it | (none: speed matters) | Chief Risk Officer, Privacy Lead | AI register; incident file | Act s.8(5); Rule 6(1)(d) |
+| Restarting a suspended AI system | Chief Risk Officer | CISO | Business owner | AI register; incident file | RBI draft guidance on model risk management |
+| An AI tool approved for staff use with personal data | CTO | CISO and Privacy Lead | Head of Procurement | AI register | Act s.8(2), s.8(5); Rule 6(1)(f) |
 
 **Breach approval when the CEO cannot be reached.** Every personal data breach must be intimated to affected persons and to the Data Protection Board without delay, and the detailed report is due within 72 hours (Rule 7). The Act and the Rules set no threshold of seriousness below which a breach need not be reported. If the CEO cannot be reached within two hours of the request for approval, the Privacy Lead approves, and the CEO is told as soon as possible.
 

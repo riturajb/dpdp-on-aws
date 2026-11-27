@@ -3,7 +3,8 @@
 # Four jobs run side by side. A pull request can be merged only when all of them pass:
 #   terraform - the infrastructure code is formatted, valid and free of common mistakes
 #   security  - no secret is committed, and no critical misconfiguration is in the code
-#   register  - the personal data register is complete, and the offline tests pass
+#   register  - the personal data register and the AI register are complete, and the
+#               offline tests pass
 #   plan      - (Release 3) the workload stacks are planned against the real account with a
 #               read-only role, and every plan is checked against policies/rego. This job runs
 #               only where the repository's owner has set it up (Release 3 guide, Step 8);
@@ -99,6 +100,9 @@ jobs:
       # Same check as before every commit on the laptop (see .pre-commit-config.yaml).
       - name: Register check (Section 4, Section 8(2), Rule 8(3))
         run: python tools/register_check.py
+      # The AI register is checked against the personal data register (AI governance, v0.5.1).
+      - name: AI register check (Section 8(1), Section 8(5), Rule 6(1))
+        run: python tools/ai_register_check.py
       # Runs the offline tests, including T12 (the plan-check rules). Live tests need AWS
       # sign-in, so they are skipped here.
       - name: Offline tests

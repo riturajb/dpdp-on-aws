@@ -26,6 +26,7 @@ Status for Fernleaf Finance: **In place** (approved and in use), **Drafted** (wr
 | 16 | Requests from the Government and the Data Protection Board | DPDP-Rule-23, DPDP-Act-S32 | General Counsel | Yearly | Release 9 | Planned |
 | 17 | Register of exemptions relied on | DPDP-Act-S17(1), DPDP-Act-S17(2)(b) | General Counsel | Yearly | Operating model | Drafted |
 | 18 | Significant Data Fiduciary readiness: Data Protection Officer, independent data auditor, yearly assessment and audit | DPDP-Act-S10(2), DPDP-Rule-13 | Privacy Lead | On notification | Operating model (`dpia-template.md`) | Drafted |
+| 19 | Policy on the use of AI: AI systems the company builds or runs, AI tools staff use, AI features switched on by vendors (`ai-governance/ai-use-policy.md`) | DPDP-Act-S4, DPDP-Act-S8(1), DPDP-Act-S8(5), DPDP-Rule-6(1)(a), DPDP-Rule-6(1)(f) | CTO | Yearly, and for each new AI system or staff AI tool | AI governance (AI register and check); Releases 12 and 13 | Drafted |
 
 ## How to use it
 

@@ -19,7 +19,7 @@ Keep it to one page. Every figure comes from a record the company already keeps:
 | 5 | Personal data breaches | Number; for each, when it was intimated to affected persons and to the Data Protection Board, against Rule 7 | Breach files |
 | 6 | Other incident reports | Cyber incidents reported to CERT-In within six hours, as its directions require | Incident log |
 | 7 | Rights requests and grievances | Number received; number answered within the published period of no more than 90 days; oldest open | Request and grievance log |
-| 8 | Data Processors | Number; contracts with security and erasure clauses; erasure confirmations outstanding | Vendor register |
+| 8 | Data Processors and AI systems | Number of Data Processors; contracts with security and erasure clauses; erasure confirmations outstanding. AI systems and staff AI tools in the AI register, by status; open AI decisions; validations due; any suspension | Vendor register; AI register (`register/ai-register.yaml`) |
 | 9 | Changes outside the process | Changes flagged by detection, and how each was dealt with; exceptions open and expiring | Detection results (Release 3); exceptions register |
 | 10 | Decisions for the board | Each decision needed this quarter, with the recommendation | Privacy committee |
 | 11 | Next deadlines | Dates in the next two quarters that matter, such as commencement dates and notification as a Significant Data Fiduciary | Obligations Matrix, `Timeline` |
@@ -63,7 +63,7 @@ Keep it to one page. Every figure comes from a record the company already keeps:
 
 **7. Rights requests and grievances.** 14 requests received; all answered within the published period of 30 days. Oldest open: 6 days.
 
-**8. Data Processors.** 4 vendors receive personal data; all 4 contracts contain security clauses; erasure clauses are being added to 2.
+**8. Data Processors and AI systems.** 4 vendors receive personal data; all 4 contracts contain security clauses; erasure clauses are being added to 2. One AI system, the borrower assistant, is planned and not built; 5 of its 10 decisions are open, including its legal basis. No AI tool is approved for staff use with personal data.
 
 **9. Changes outside the process.** Detection was switched on in November. Its fire drill created a bucket and a log group outside the process; both were flagged and removed. No other changes were flagged. Exceptions open: none.
 

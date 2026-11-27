@@ -1,0 +1,265 @@
+# AI register of Fernleaf Finance (fictional), the model lending and wallet company.
+# All data is synthetic.
+#
+# One entry for every AI system the company builds or runs, every model behind one, and every
+# kind of AI tool staff may use at work. It is to AI what register/personal-data-register.yaml
+# is to personal data: the record of what exists, who owns it, what it may touch and what it
+# may do. tools/ai_register_check.py checks it on every pull request, and fails when an entry
+# would let an AI system use personal data the personal data register does not know about,
+# act without the approvals decided here, or send data outside India.
+#
+# Why it exists:
+#   DPDP Act s.8(1)   the company is responsible for all processing, including by an AI
+#                     system and by the providers behind it
+#   DPDP Act s.8(5)   reasonable security safeguards, and Rule 6(1)(a) to (g)
+#   DPDP Act s.4      personal data only for a lawful purpose, with a recorded basis
+#   RBI draft guidance on model risk management (24 June 2026, consultation closed 24 July
+#   2026, not final): an inventory of all models, including AI and third-party models, with
+#   their owners, developers, validators, approvers, risk tier, intended use and dependencies;
+#   no model used unless it is in the inventory; human oversight and the ability to suspend.
+#   CERT-In's AI blueprint (25 May 2026, guidance): inventories of AI systems and
+#   integrations; approval of AI use; limits on sensitive data sent to public AI services.
+#
+# Status values: planned | in_development | live | retired
+# A planned entry may carry open items (WARN). Before an entry becomes in_development, every
+# WARN must be closed or accepted in writing by the role that owns the decision
+# (ai-governance/decisions.md).
+#
+# Roles are the columns of operating-model/raci.xlsx, sheet AI.
+
+schema_version: 1
+company: Fernleaf Finance (fictional lending and wallet company)
+
+roles:
+  - Board of directors
+  - CEO
+  - Privacy Lead
+  - CISO
+  - CTO
+  - Chief Risk Officer
+  - General Counsel and Company Secretary
+  - Business owner
+  - HR
+  - Procurement
+
+# Where an AI system may run, and where its model calls may be processed. India only: a
+# design choice of this build (Mumbai-only since Release 1), not a requirement of Section 16.
+allowed_regions: [ap-south-1, ap-south-2]
+allowed_profile_prefixes: ["in."]
+
+# ---------------------------------------------------------------------------------------------
+# AI systems the company builds or runs
+# ---------------------------------------------------------------------------------------------
+systems:
+  - id: borrower-assistant
+    name: Borrower assistant
+    status: planned
+    build_release: 12
+    description: >-
+      A chat assistant in the Fernleaf app. A signed-in adult borrower asks about her own
+      loan: what is due, when, how to pay, and how to raise a complaint. It can ask for a
+      change to her repayment date, which a person approves. It makes no credit decision.
+    business_owner: Head of Customer Service
+    accountable_role: Business owner
+    customer_facing: true
+    users: Signed-in adult borrowers. Teen wallet accounts cannot use it.
+    children: false
+    decisions_about_people: none
+    decisions_note: >-
+      It answers and routes; it does not decide eligibility, pricing or collection action.
+      If that ever changes, Section 8(3) (complete, accurate and consistent data for decisions
+      that affect a person) and the RBI tiering criteria apply, and the impact assessment is
+      done again.
+
+    personal_data:
+      # Categories from register/personal-data-register.yaml that the assistant's tools read.
+      categories: [contact, loan-application, repayments-collections, support-tickets]
+      # Purposes from the personal data register this use relies on. A purpose listed under
+      # planned_purposes does not exist yet: it is a WARN until the register has it.
+      purposes: [loan-collections, complaint-handling]
+      planned_purposes:
+        - id: borrower-assistance
+          why: >-
+            Whether answering a borrower's questions through the assistant falls within the
+            existing purposes, or is a new purpose that needs a notice change and its own
+            legal basis, is decision D-3 (General Counsel).
+      planned_categories:
+        - id: assistant-conversations
+          why: >-
+            What the borrower types and what the assistant replies. A new category with its
+            own store, retention and legal basis, added to the personal data register in
+            Release 12 (decision D-4).
+      not_used:
+        - category: credit-bureau-report
+          why: Not needed to answer service questions (Section 4, Section 6(1) data limited to the purpose).
+        - category: identity-kyc
+          why: Aadhaar and PAN are never sent to the model. Masked in the tool code if they appear.
+        - category: teen-wallet
+          why: Children's data. Out of scope (Section 9).
+
+    model: claude-in
+    tools:
+      - id: get_loan_summary
+        effect: read
+        allowed: true
+        reads: [loan-application, repayments-collections]
+        scope: signed_in_customer_only
+      - id: get_repayment_schedule
+        effect: read
+        allowed: true
+        reads: [repayments-collections]
+        scope: signed_in_customer_only
+      - id: get_contact_details
+        effect: read
+        allowed: true
+        reads: [contact]
+        scope: signed_in_customer_only
+      - id: raise_complaint
+        effect: change
+        allowed: true
+        reads: [support-tickets]
+        scope: signed_in_customer_only
+        human_approval: not_required
+        why_no_approval: >-
+          Creates a ticket in her name with her words. It changes nothing about her loan, and
+          a person handles every ticket.
+      - id: request_repayment_date_change
+        effect: change
+        allowed: true
+        reads: [repayments-collections]
+        scope: signed_in_customer_only
+        human_approval: required
+        approver: Collections officer
+      - id: get_credit_score
+        effect: read
+        allowed: false
+        reads: [credit-bureau-report]
+        why_forbidden: >-
+          Credit bureau data is not needed to answer a service question (Section 4, Section
+          6(1)). Forbidden in the policy engine, not only left out of the prompt.
+      - id: waive_charges
+        effect: change
+        allowed: false
+        why_forbidden: A financial decision about a person. Taken by people, under the collections policy.
+
+    controls:
+      # Where each rule is enforced. Rules that matter are enforced outside the model.
+      customer_check: Tool code reads the customer id from the signed-in session, never from the conversation.
+      tool_policy: >-
+        Amazon Bedrock AgentCore Policy (Cedar) allows or forbids each tool. Its availability
+        in Mumbai is confirmed at build, because AWS's region list and its launch notice
+        disagree (decision D-1); if it is not available, the same rules are enforced in the
+        tool code and the assistant's IAM role.
+      content_filters: Amazon Bedrock Guardrails as a second line, with custom patterns for Aadhaar and PAN.
+      masking_before_model: true
+      masking_before_logging: true
+      model_invocation_logging: off
+      model_invocation_logging_why: >-
+        Bedrock model invocation logging keeps the full prompt, unmasked. Traces are kept
+        instead, masked before they are written.
+      trace_retention_days: 365
+      action_record: >-
+        Every tool call, policy decision and human approval written as a locked record, as
+        the Release 4 consent records are.
+      ai_disclosure: true
+      human_handoff: true
+      kill_switch:
+        decides: CISO
+        also_may_trigger: Business owner
+        restart_needs: Chief Risk Officer
+        how: >-
+          Two levels: read-only (every change tool forbidden) and halt (every tool forbidden).
+          Both are policy changes that take effect on the next request.
+
+    risk_tier: high
+    risk_tier_why: >-
+      Customer-facing generative AI that can start a change to a borrower's loan. Material
+      because it touches every borrower who uses the app, even though it makes no credit
+      decision. Tiered high so that validation, approval and monitoring are the strictest.
+
+    impact_assessment: ai-governance/impact-assessment-borrower-assistant.md
+    validation:
+      independent: true
+      validator_role: Chief Risk Officer
+      before_deployment: required
+      status: not_started
+      planned_tests: >-
+        Release 13: prompt injection (direct and through documents), tool misuse,
+        cross-customer access, memory poisoning and excessive agency, each run several times
+        with the rate of containment recorded; read-only and halt drills.
+
+# ---------------------------------------------------------------------------------------------
+# Model inventory (the fields the RBI draft guidance lists as a minimum)
+# ---------------------------------------------------------------------------------------------
+models:
+  - id: claude-in
+    name: Claude, through Amazon Bedrock's India inference profile
+    status: planned
+    provider: Anthropic, through Amazon Web Services
+    source: third_party
+    inference_profile: in.anthropic.claude-sonnet-5
+    regions: [ap-south-1, ap-south-2]
+    region_note: >-
+      The India profile, available since 29 September 2026, routes requests only between
+      Mumbai and Hyderabad. The Release 1 region guardrail needs one narrow, permanent change
+      for calls through this profile (condition bedrock:InferenceProfileArn; decision D-2).
+      Whether Hyderabad must first be enabled for the account is checked at build time.
+    intended_use: Language understanding and replies for the borrower assistant. No training or fine-tuning on Fernleaf data.
+    used_by: [borrower-assistant]
+    owner_role: Business owner
+    developer: Anthropic (model); Fernleaf engineering (prompts, tools and policies)
+    validator_role: Chief Risk Officer
+    approver_role: Chief Risk Officer
+    risk_tier: high
+    dependencies:
+      upstream: [Amazon Bedrock, AgentCore Runtime, AgentCore Policy, Bedrock Guardrails]
+      downstream: [borrower-assistant]
+    vendor: aws-bedrock
+    vendor_status: not_in_register
+    vendor_why: >-
+      AWS, as the provider of Bedrock, processes the borrower's messages on Fernleaf's behalf.
+      It is added to the vendor list of the personal data register, with its contract clause,
+      before Release 12 (decision D-5).
+    provider_data_terms: >-
+      To confirm before build, in writing: prompts and replies are not used to train models;
+      what is stored for abuse detection, where, and for how long.
+    validation_observations: []
+    retired_on: null
+
+# ---------------------------------------------------------------------------------------------
+# AI tools staff use at work (not built by the company)
+# ---------------------------------------------------------------------------------------------
+staff_tools:
+  - id: public-chatbots
+    name: Public AI chatbots on personal accounts
+    status: allowed_without_personal_data
+    owner_role: CISO
+    rule: >-
+      Allowed for work that contains no customer or employee data. Personal data is masked
+      in the browser before a prompt is sent; uploads of customer files are blocked.
+    enforced_by: Browser masking and the web proxy (Rule 6(1)(a), (b)).
+  - id: approved-workplace-assistant
+    name: Workplace AI assistant under an enterprise contract
+    status: planned
+    owner_role: CTO
+    rule: >-
+      The only AI tool approved for personal data, once chosen: under contract, data kept
+      in India, not used for training, retention set by Fernleaf (decision D-7).
+    enforced_by: Contract (Section 8(2), Rule 6(1)(f)) and single sign-on.
+  - id: call-note-takers
+    name: AI note-takers on customer calls
+    status: not_allowed
+    owner_role: CISO
+    rule: >-
+      Not allowed on customer calls. A note-taker makes a new copy of what customers say,
+      outside the personal data register and with a provider that has no contract with
+      Fernleaf.
+    enforced_by: Blocked at the proxy and in the meeting software settings.
+  - id: vendor-ai-features
+    name: AI features switched on inside existing vendor products
+    status: needs_approval
+    owner_role: Procurement
+    rule: >-
+      A vendor may not switch on an AI feature that processes Fernleaf's personal data
+      without notice and approval, as a change to the processing under its contract.
+    enforced_by: Vendor contract clause (Rule 6(1)(f)); checked at each vendor review (Release 11).
