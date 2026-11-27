@@ -20,3 +20,10 @@ repos:
         language: system
         pass_filenames: false
         files: ^register/
+      # Checks the AI register against the personal data register when either changes.
+      - id: ai-register-check
+        name: AI register check
+        entry: python3 tools/ai_register_check.py
+        language: system
+        pass_filenames: false
+        files: ^(register/|ai-governance/)
