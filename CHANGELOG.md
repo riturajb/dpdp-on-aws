@@ -4,6 +4,25 @@ Every release of DPDP on AWS is listed here, newest first. Each entry states wha
 
 ---
 
+## v0.5.1 · AI governance · 27 November 2026
+
+A companion release to Release 4, with no AWS resources.
+
+### Added
+
+- **The AI register** (`register/ai-register.yaml`): the borrower assistant Fernleaf Finance (fictional) plans, with the personal data it may use, its tools (allowed, forbidden, and which changes a person approves), its controls and who can suspend it; the model inventory entry with the fields of the RBI draft guidance on model risk management; and the AI tools staff use at work.
+- **The AI register check** (`tools/ai_register.py`, `tools/ai_register_check.py`): fails when an AI system would use personal data the personal data register does not know, call a tool that changes something without an approval rule, log unmasked prompts, keep traces for less than a year, be validated by its own owner, or send data outside India, or when a system moves into development while a purpose or category it needs is still missing from the personal data register (Section 4, Section 8(1), Section 8(5), Section 9, Rule 6(1)). Run in GitHub Actions and before every commit that changes a register.
+- **Two tests** (T21 and T22, offline), with evidence records: the AI register passes; six unsafe changes are each stopped. Twenty-nine tests in total.
+- **AI governance** (`ai-governance/`): the guide, the impact assessment of the borrower assistant, the ten decisions to take before the build (five decided, five open), and the policy on the use of AI.
+
+### Changed
+
+- **Operating model**: the RACI gains a sheet `AI`, with one accountable role for each of fourteen AI activities; the governance charter gains the Chief Risk Officer and six decision rights for AI; the policy index gains policy 19, the policy on the use of AI; the quarterly board report covers AI systems in section 8. The 40 rows of the RACI are unchanged.
+- **GitHub Actions and pre-commit** run the AI register check.
+- README: the AI governance section and the release plan status.
+
+---
+
 ## v0.5.0 · Release 4: Notice and consent · 25 November 2026
 
 ### Added

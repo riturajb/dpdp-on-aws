@@ -6,7 +6,7 @@ Most organisations still meet their DPDP obligations through policies, spreadshe
 
 This project turns the obligations of the Act and the Rules into controls that run in an AWS account, act automatically, and retain evidence of what they did. Every part is published here with the legal provision it addresses and the steps to run it.
 
-> **Status:** Release 1 (Foundations, and know what you hold), Release 2 (Find), Release 3 (Prevent), the operating model and Release 4 (Notice and consent) are available. Next: AI governance, a companion release, then Release 5 (Withdrawal), both expected in December 2026. The main DPDP obligations apply from **13 May 2027**.
+> **Status:** Release 1 (Foundations, and know what you hold), Release 2 (Find), Release 3 (Prevent), the operating model, Release 4 (Notice and consent) and AI governance are available. Next: Release 5 (Withdrawal), expected in December 2026. The main DPDP obligations apply from **13 May 2027**.
 
 ---
 
@@ -41,6 +41,25 @@ The system is built and tested on **Fernleaf Finance**, a fictional Indian lendi
 Fernleaf Finance does not exist. Any resemblance to a real company is unintended.
 
 **All customer data in this project is synthetic.** No real personal data is used, stored or published. Sample Aadhaar and PAN numbers are generated so that they cannot belong to a real person; the Aadhaar numbers deliberately fail the Aadhaar check digit.
+
+---
+
+## AI governance
+
+Fernleaf Finance (fictional) plans a borrower assistant, built in Release 12 and attacked in Release 13. This companion release governs it before anything is built. It contains no AWS resources.
+
+| File | What it is |
+|---|---|
+| [`register/ai-register.yaml`](register/ai-register.yaml) | The AI register: the assistant, its tools and controls; the model inventory entry; the AI tools staff use |
+| [`tools/ai_register_check.py`](tools/ai_register_check.py) | The check, run on every pull request and before every commit that changes a register |
+| [`ai-governance/impact-assessment-borrower-assistant.md`](ai-governance/impact-assessment-borrower-assistant.md) | The impact assessment of the assistant, including what it may do and how it is stopped |
+| [`ai-governance/decisions.md`](ai-governance/decisions.md) | Ten decisions to take before the build, each with one decider: five decided, five open |
+| [`ai-governance/ai-use-policy.md`](ai-governance/ai-use-policy.md) | The policy on the use of AI, for staff and for AI systems |
+| [`operating-model/raci.xlsx`](operating-model/raci.xlsx), sheet `AI` | One accountable role for each AI activity, including the Chief Risk Officer as independent validator |
+
+The check fails when an AI system would use personal data the personal data register does not know, call a tool that changes something without an approval rule, log unmasked prompts, be validated by its own owner, or send data outside India. Two offline tests (T21, T22) show it passing on the register and stopping six unsafe changes, including building the assistant before its purpose is recorded.
+
+No Indian law is specific to AI; the DPDP Act applies to it as to any processing. RBI's draft guidance on model risk management (June 2026, not final) is followed as if final: a model inventory, risk tiers, independent validation, human oversight, the ability to suspend, and telling customers they are dealing with AI. Start with [`ai-governance/README.md`](ai-governance/README.md).
 
 ---
 
@@ -260,7 +279,7 @@ Each release is published here with release notes and announced on LinkedIn. Tim
 | 3 | Mid-November 2026 | Prevent: security safeguards enforced before a change is released, and changes outside the process detected | **Available** |
 | Operating model | Late November 2026 | Who runs it: the governance charter, the privacy office and the DPO's mandate, a RACI for every obligation, and board reporting | **Available** |
 | 4 | Late November 2026 | Notice and consent: an itemised notice, specific consent, and proof of what each person agreed to | **Available** |
-| AI governance | December 2026 | Governing an AI assistant before it is built: an AI register of agents, tools and controls, checked like the personal data register; owners; an impact assessment; the model inventory entry; and the decisions to take first. No AWS code | Planned |
+| AI governance | Late November 2026 | Governing an AI assistant before it is built: an AI register of the assistant, its tools and controls, checked like the personal data register; owners; an impact assessment; the model inventory entry; and the decisions to take first. No AWS resources | **Available** |
 | 5 | December 2026 | Withdrawal: as easy as consenting, and processing stops, including at vendors | Planned |
 | 6 | January 2027 | Who gives consent: verifiable parental consent, no tracking of children, and consent through a Consent Manager | Planned |
 | 7 | January 2027 | Retention and conflicts with other laws: the legal reason and expiry date for every record | Planned |
